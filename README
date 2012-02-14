@@ -20,10 +20,6 @@ This is the Python bindings for SoftLayer Object Storage. Simple usage:
     # Download object
     print obj.read()
 
-    # Download object in chunks.
-    for chunk in obj.iter_content(chunk_size=2):
-        print "Read:", chunk
-
     # List objects in container
     for o in container:
         print o.name

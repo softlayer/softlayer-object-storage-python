@@ -5,12 +5,12 @@
 """
 
 from object_storage.client import Client
-from object_storage.consts import __version__
+from object_storage.consts import __version__, SL_AUTH_URL
 
 def get_client(*args, **kwargs):
     return get_httplib2_client(*args, **kwargs)
 
-def get_httplib2_client(username, password, auth_url=None):
+def get_httplib2_client(username, password, auth_url=SL_AUTH_URL):
     from object_storage.transport.httplib2conn import AuthenticatedConnection, Authentication
 
     auth = Authentication(username, password, auth_url=auth_url)
@@ -18,7 +18,7 @@ def get_httplib2_client(username, password, auth_url=None):
     client = Client(username, password, auth_url=auth_url, connection=conn)
     return client
 
-def get_requests_client(username, password, auth_url=None):
+def get_requests_client(username, password, auth_url=SL_AUTH_URL):
     from object_storage.transport.connection import AuthenticatedConnection, Authentication
 
     auth = Authentication(username, password, auth_url=auth_url)
@@ -26,7 +26,7 @@ def get_requests_client(username, password, auth_url=None):
     client = Client(username, password, auth_url=auth_url, connection=conn)
     return client
 
-def get_twisted_client(username, password, auth_url=None):
+def get_twisted_client(username, password, auth_url=SL_AUTH_URL):
     from object_storage.transport.twist import AuthenticatedConnection, Authentication
 
     auth = Authentication(username, password, auth_url=auth_url)

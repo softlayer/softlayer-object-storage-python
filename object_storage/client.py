@@ -21,7 +21,6 @@ from object_storage.object import Object
 from object_storage.node import Node
 from object_storage.utils import unicode_quote
 
-from object_storage import consts
 from object_storage import errors
 
 import logging
@@ -42,7 +41,7 @@ class Client(Node):
             'size': 'size',
         }
     
-    def __init__(self, username=None, api_key=None, **kwargs):
+    def __init__(self, username=None, api_key=None, auth_url=None, **kwargs):
         self.size = None
         self.count = None
         self.object_count = None
@@ -54,7 +53,6 @@ class Client(Node):
         self.object_class = kwargs.get('object_class', Object)
         
         self.storage_url = None
-        auth_url = kwargs.get('auth_url', consts.SL_AUTH_URL)
         
         self.conn = kwargs.get('connection', None)
         if not self.conn:
