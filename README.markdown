@@ -31,10 +31,10 @@ sl_storage['foo']['bar.txt'].read()
 sl_storage['foo'].objects()
 # [Object(foo, bar.txt)]
 
-obj.delete()
+sl_storage['foo']['bar.txt'].delete()
 # True
 
-container.delete()
+sl_storage['foo'].delete()
 # True
 ```
 
