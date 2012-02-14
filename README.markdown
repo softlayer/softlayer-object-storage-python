@@ -8,7 +8,7 @@ Basic Usage
 ```python
 import object_storage
 
-sl_storage = object_storage.get_client('kmcdonald:user1', 'fpEjmVD')
+sl_storage = object_storage.get_client('YOUR_USERNAME', 'YOUR_API_KEY')
 
 sl_storage.containers()
 # []
