@@ -138,7 +138,9 @@ class Object(Node):
         if self.size is None:
             del headers['Content-Length']
             headers['Transfer-Encoding'] = 'chunked'
-        return self.make_request('PUT', data=data, headers=headers)
+        def _formatter(res):
+            return True
+        return self.make_request('PUT', data=data, headers=headers, formatter=_formatter)
     write = send
    
     def upload_directory(self, directory):
@@ -283,7 +285,7 @@ class Object(Node):
         return self.client.object(self.container, new_name)
         
     def __str__(self):
-        return "%s/%s" % (self.container, self.name)
+        return 'Object({0}, {1})'.format(self.container.encode("utf-8"), self.name.encode("utf-8"))
     __repr__ = __str__
 
     def __enter__(self):

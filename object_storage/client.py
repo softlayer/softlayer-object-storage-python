@@ -61,7 +61,7 @@ class Client(Node):
 
         super(Client, self).__init__()
 
-    def search(self, query=None, **kwargs):
+    def search(self, query=None, path=None, **kwargs):
         """
             Access the search interface.
         """
@@ -77,11 +77,11 @@ class Client(Node):
                 params[key] = val
         params = dict(default_params.items() + params.items())
         headers = {'X-Context': 'search'}
-        path = None
+        _path = None
         if kwargs.has_key('container'):
-            path = [kwargs['container']]
-        if kwargs.has_key('path'):
-            path = kwargs['path']
+            _path = [kwargs['container']]
+        if path and type(path) is not dict:
+            _path = [path]
         def _formatter(response):
             """
                 Formats search results.
@@ -101,7 +101,7 @@ class Client(Node):
             count = int(headers.get('x-search-items-count', 0))
             total = int(headers.get('x-search-items-total', 0))
             return {'count': count, 'total': total, 'results': objs}
-        return self.make_request('GET', path, headers=headers, 
+        return self.make_request('GET', _path, headers=headers, 
                                              params=params,
                                              formatter=_formatter)
 
@@ -150,7 +150,7 @@ class Client(Node):
 
         return self.make_request('DELETE', [name], params=params, formatter=_formatter)
     
-    def list_containers(self, marker=None, headers=None):
+    def containers(self, marker=None, headers=None):
         """ Will list all containers in the account """
         params = {'format': 'json'}
         if marker:
@@ -164,11 +164,11 @@ class Client(Node):
                     containers.append(self.container(name, item))
             return containers
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
-    list = list_containers
+    list = containers
 
     def list_cdn_containers(self, *args, **kwargs):
         kwargs['headers'] = {'X-Context': 'cdn'}
-        return self.list_containers(*args, **kwargs)
+        return self.containers(*args, **kwargs)
     list_cdn = list_cdn_containers
     
     def is_dir(self):

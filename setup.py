@@ -2,12 +2,12 @@
 from setuptools import setup, find_packages
 from object_storage import __version__
 
-name = 'object_storage'
+name = 'softlayer-object-storage'
 version = __version__
 setup(
     name=name,
     version=version,
-    description='Softlayer Object Storage client bindings',
+    description='Softlayer Object Storage client bindings for python.',
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -19,7 +19,6 @@ setup(
         'Topic :: Utilities',
         ],
     author='Kevin McDonald',
-    author_email='kmcdonald@softlayer.com',
     url='https://github.com/softlayer/softlayer-object-storage-python',
     license='MIT',
     packages=find_packages(exclude=['test', 'ez_setup', 'examples']),

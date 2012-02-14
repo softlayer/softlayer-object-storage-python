@@ -85,7 +85,7 @@ class Container(Node):
         self.delete()
         new_container.create()
 
-    def list(self, limit=None, marker=None, base_only=False, headers=None):
+    def objects(self, limit=None, marker=None, base_only=False, headers=None):
         """ Lists objects in the container.  """
         params = {'format': 'json'}
         if base_only:
@@ -105,6 +105,7 @@ class Container(Node):
             return objects
 
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
+    list=objects
 
     def enable_cdn(self, ttl=1440):
         self.read = '.r:*'
@@ -118,7 +119,7 @@ class Container(Node):
 
     def search(self, *args, **kwargs):
         """ Search within container. """
-        return self.client.search(*args, path=self.name, **kwargs)
+        return self.client.search(path=self.name, *args, **kwargs)
 
     def get_object(self, name):
         """ Calls get_object() on the client. """

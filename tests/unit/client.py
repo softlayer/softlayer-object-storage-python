@@ -41,7 +41,7 @@ class ClientTest(unittest.TestCase):
     def test_list_containers(self):
         self.connection.storage_url = 'storage_url'
         self.connection.make_request().content = '[{"name":"container_name","count":10,"bytes":100}]'
-        containers = self.client.list_containers()
+        containers = self.client.containers()
         #self.connection.make_request.assert_called_with('GET', 
         #                                                'storage_url',
         #                                                headers=None,
