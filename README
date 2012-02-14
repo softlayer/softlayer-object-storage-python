@@ -1,0 +1,37 @@
+Introduction
+============
+
+This is the Python bindings for SoftLayer Object Storage. Simple usage:
+
+    import object_storage
+
+    # Create a client instance
+    client = object_storage.get_client('username', 'api_key')
+
+    # Create a new container
+    container = client['container'].create()
+
+    # Create a new object
+    obj = container['sample_object.txt'].create()
+
+    # Upload plain text to the object storage.
+    obj.send('Text')
+
+    # Download object
+    print obj.read()
+
+    # Download object in chunks.
+    for chunk in obj.iter_content(chunk_size=2):
+        print "Read:", chunk
+
+    # List objects in container
+    for o in container:
+        print o.name
+    # or
+    print container.list()
+
+    # Delete object
+    obj.delete()
+
+    # Delete container
+    container.delete()
