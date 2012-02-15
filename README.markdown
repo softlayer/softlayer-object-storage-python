@@ -49,7 +49,7 @@ sl_storage['foo'].delete()
 ```
 
 Search Usage
------------
+------------
 ```python
 sl_storage.search('bar')
 # {'count': 2, 'total': 2, 'results': [Container(foo), Object(foo, foo_object)]}
@@ -62,4 +62,29 @@ sl_storage.search('foo', type='container')
 
 sl_storage.search('foo*baz')
 # {'count': 1, 'total': 1, 'results': [Container(foobarbaz)]}
+```
+
+Developement
+------------
+Follow the [Fork and Pull Request workflow](https://github.com/sevntu-checkstyle/sevntu.checkstyle/wiki/Fork-and-Pull-Request-workflow
+). Here's how to get started:
+
+* Fork repo on github
+* Clone your new repo to your local machine.
+
+* ``` 
+git clone git@github.com:username/softlayer-object-storage-python.git 
+```
+
+* Configure remote for upstream.
+
+* ```
+cd softlayer-object-storage-python
+git remote add upstream git://github.com/softlayer/softlayer-object-storage-python.git
+```
+
+* Fetch from upstream
+
+* ``` 
+git fetch upstream
 ```
