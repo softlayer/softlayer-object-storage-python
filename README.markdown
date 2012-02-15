@@ -2,6 +2,16 @@ SoftLayer Object Storage Python Client
 ======================================
 Python bindings for SoftLayer Object Storage
 
+Installation
+------------
+Download source and run:
+
+```python setup.py install```
+
+To build the documentation (requires sphinx):
+
+```python setup.py build_sphinx```
+
 Basic Usage
 ----------
 
