@@ -1,28 +1,12 @@
 import unittest
 from mock import Mock
-from object_storage.object import Object
+from object_storage.storage_object import StorageObject
 
 class ClientTest(unittest.TestCase):
     def test_instance_setup(self):
         self.assert_(self.client == self.obj.client, "client is set")
         self.assert_(self.obj.container == 'CONTAINER', "container is set")
         self.assert_(self.obj.name == 'NAME', "name is set")
-        self.assert_(self.obj.content_type == None, "content_type is None")
-        self.assert_(self.obj.last_modified == None, "last_modified is None")
-        self.assert_(self.obj.size == None, "size is None")
-        self.assert_(self.obj.hash == None, "hash is None")
-        self.assert_(self.obj.manifest == None, "manifest is None")
-        self.assert_(self.obj.content_encoding == None, "content_encoding is None")
-        self.assert_(self.obj.meta == {}, "meta is {}")
-
-    def test_is_dir(self):
-        result = self.obj.is_dir()
-        self.assert_(result == False, "Object isn't a directory")
-
-    def test_is_dir_yes(self):
-        self.obj.content_type = 'text/directory'
-        result =self.obj.is_dir()
-        self.assert_(result == True, "Object is a directory")
 
     def test_create(self):
         # no content_type and no ext
@@ -31,25 +15,11 @@ class ClientTest(unittest.TestCase):
         self.obj._headers = _headers
         self.obj.make_request = _make_request
         result = self.obj.create()
-        self.assert_(self.obj.content_type == 'text/plain', "Content type set through side-effect")
-
-        self.obj._headers.called_once_with()
         self.obj.make_request.called_once_with('PUT', headers=_headers)
         
-        # with .py file ext
-        self.obj.content_type = None
-        self.obj.name = "FILENAME.py"
-        result = self.obj.create()
-        self.assert_(self.obj.content_type == 'text/x-python', "Content type set through side-effect")
-
-        # with content type set
-        self.obj.content_type = 'CONTENT_TYPE'
-        result = self.obj.create()
-        self.assert_(self.obj.content_type == 'CONTENT_TYPE', "Content type set through side-effect")
-
     def test_delete(self):
         result = self.client.delete()
-        self.client.delete_object.called_once_with(self.obj.container, self.obj.name)
+        self.client.delete_object.called_once_with(self.obj.container, self.obj.name, headers=None)
 
     def test_read(self):#, size=0, offset=0):
         _result = Mock()
@@ -119,4 +89,4 @@ class ClientTest(unittest.TestCase):
 
     def setUp(self):
         self.client = Mock()
-        self.obj = Object('CONTAINER', 'NAME', client=self.client)
+        self.obj = StorageObject('CONTAINER', 'NAME', client=self.client)

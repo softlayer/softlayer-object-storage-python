@@ -5,41 +5,113 @@
 """
 import json
 import os
-from object_storage.object import Object
+import UserDict
+from object_storage.storage_object import StorageObject
 from object_storage.node import Node
+from object_storage.utils import get_path
 
-class Container(Node):
-    """ Container class. Encapsulates Storage containers. """
-    type = 'container'
-    property_names = ['name', 'size', 'count']
-    meta_prefixes = ['meta_', 'x-container-meta-']
-    property_mappings = {
-            'x-container-object-count': 'count',
-            'x-container-bytes-used': 'size',
-            'x-container-read': 'read',
-            'x-container-write': 'write',
-            'count': 'count',
-            'size': 'size',
-            'date': 'date',
-            'x-cdn-ttl': 'ttl',
-        }
-
-    def __init__(self, name, properties=None, client=None): 
+class ContainerModel(UserDict.UserDict):
+    def __init__(self, controller, name, headers={}):
         self.name = name
-        self.size = self.count = self.read = self.write = None
-        self.meta = {}
+        _headers = {}
 
-        if properties:
-            self._process_props(properties)
+        # Lowercase headers
+        for key, value in headers.iteritems():
+            _key = key.lower()
+            _headers[_key] = value
+        self.headers = _headers
+        self._meta = None
 
+        _properties = {'name': self.name}
+
+        _properties['count'] = int(self.headers.get('x-container-object-count') or\
+                                   self.headers.get('count') or 0)
+        _properties['object_count'] = _properties['count']
+        _properties['size'] = float(self.headers.get('x-container-bytes-used') or\
+                                    self.headers.get('size') or 0)
+        _properties['read'] = self.headers.get('x-container-read') or\
+                              self.headers.get('read')
+        _properties['write'] = self.headers.get('x-container-read') or\
+                               self.headers.get('read')
+        _properties['ttl'] = int(self.headers.get('x-cdn-ttl') or 0)
+        _properties['date'] = self.headers.get('date')
+        _properties['cdn_url'] = self.headers.get('x-cdn-url')
+        _properties['cdn_ssl_url'] = self.headers.get('x-cdn-ssl-url')
+
+        _properties['path'] = controller.path
+        _properties['url'] = controller.url
+
+        meta = {}
+
+        for key, value in self.headers.iteritems():
+            if key.startswith('meta_'):
+                meta[key[5:]] = value
+            elif key.startswith('x-container-meta-'):
+                meta[key[17:]] = value
+        self.meta = meta
+        _properties['meta'] = self.meta
+
+        self.properties = _properties
+        self.data = self.properties
+
+class Container:
+    """ Container class. Encapsulates Storage containers. """
+    def __init__(self, name, headers=None, client=None): 
+        self.name = name
         self.client = client
+        self.model = None
+        if headers:
+            self.model = ContainerModel(self, self.name, headers)
 
-        self._cdn_url = None
-        self._cdn_ssl_url = None
+    def load(self):
+        def _formatter(res):
+            self.model = ContainerModel(self, self.name, res.headers)
+            return self
+        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
 
-        self.ttl = None
+    def get_info(self):
+        if not self.model:
+            self.load()
+        return self.model.properties
 
-        super(Container, self).__init__()
+    @property
+    def properties(self):
+        return self.get_info()
+    props = properties
+
+    @property
+    def headers(self):
+        if not self.model:
+            self.load()
+        return self.model.headers
+
+    @property
+    def meta(self):
+        if not self.model:
+            self.load()
+        return self.model.meta
+
+    @property
+    def path(self):
+        """ returns path of the container """
+        path = [self.name]
+        return get_path(path)
+
+    @property
+    def url(self):
+        """ Returns the url of the container """
+        path = [self.name]
+        return self.client.get_url(path)
+
+    def is_dir(self):
+        """ Returns if the container is a directory (always True) """
+        return True
+
+    def set_metadata(self, meta):
+        meta_headers = {}
+        for k, v in meta.iteritems():
+            meta_headers["x-container-meta-{0}".format(k)] = v
+        return self.make_request('POST', headers=meta_headers)
 
     def create(self):
         """ Creates container """
@@ -47,24 +119,8 @@ class Container(Node):
             return self
         return self.make_request('PUT', formatter=_formatter)
 
-    def _headers(self):
-        """ Returns a dict of all of the known header values for an object. """
-        headers = {}
-        for key, value in self.meta.iteritems():
-            headers['X-Container-Meta-' + key] = value
-        if self.read:
-            headers['X-Container-Read'] = self.read
-        if self.write:
-            headers['X-Container-Write'] = self.write
-        if self.ttl:
-            headers['X-Cdn-Ttl'] = str(self.ttl)
-
-        return headers
-        
     def delete(self, recursive=False):
         """ Delete container """
-        #if recursive:
-        #    self.delete_all_objects()
         return self.client.delete_container(self.name, recursive=recursive)
         
     def delete_all_objects(self):
@@ -76,7 +132,7 @@ class Container(Node):
         
     def delete_object(self, obj):
         """ Delete object in the container """
-        if isinstance(obj, Object):
+        if isinstance(obj, StorageObject):
             obj = obj.name
         return self.client.delete_object(self.name, obj)
 
@@ -105,75 +161,38 @@ class Container(Node):
             return objects
 
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
-    list=objects
+
+    def set_ttl(self, ttl):
+        if not ttl:
+            ttl = ' '
+        headers = {'x-cdn-ttl': str(ttl)}
+        return self.make_request('POST', headers=headers)
 
     def enable_cdn(self, ttl=1440):
-        self.read = '.r:*'
-        self.ttl = ttl
-        return self.save_headers()
+        headers = {'x-container-read': '.r:*', 'x-cdn-ttl': str(ttl)}
+        return self.make_request('POST', headers=headers)
 
     def disable_cdn(self):
-        self.read = ' '
-        self.ttl = None
-        return self.save_headers()
+        headers = {'x-container-read': ' '}
+        return self.make_request('POST', headers=headers)
 
-    def search(self, *args, **kwargs):
+    def search(self, options={}):
         """ Search within container. """
-        return self.client.search(path=self.name, *args, **kwargs)
+        options.update({'path': self.name})
+        return self.client.search(options)
 
     def get_object(self, name):
         """ Calls get_object() on the client. """
         return self.client.get_object(self.name, name)
 
-    def object(self, name, properties=None):
+    def object(self, name, headers=None):
         """ Creates a new instance of Object """
-        return self.client.object(self.name, name, properties=properties)
+        return self.client.object(self.name, name, headers=headers)
         
     def load_from_filename(self, filename):
         """ Creates an object from a file. Uses the basename of the file path as the object name. """
         name = os.path.basename(filename)
         return self.object(name).load_from_filename(filename)
-
-    @property
-    def path(self):
-        """ returns path of the container """
-        path = [self.name]
-        return self.client.get_path(path)
-
-
-    def _get_cdn_urls(self, callback=None):
-        def _formatter(res):
-            self._cdn_url = res.headers.get('x-cdn-url', None)
-            self._cdn_ssl_url = res.headers.get('x-cdn-ssl-url', None)
-            if callback:
-                return callback()
-        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
-
-    @property
-    def cdn_url(self):
-        if self._cdn_url is None:
-            def cb():
-                return self._cdn_url
-            self._get_cdn_urls(callback=cb)
-        return self._cdn_url
-
-    @property
-    def cdn_ssl_url(self):
-        if self._cdn_ssl_url is None:
-            def cb():
-                return self._cdn_ssl_url
-            self._get_cdn_urls(callback=cb)
-        return self._cdn_ssl_url
-
-    @property
-    def url(self):
-        """ Returns the url of the container """
-        path = [self.name]
-        return self.client.get_url(path)
-
-    def is_dir(self):
-        """ Returns if the container is a directory (always True) """
-        return True
 
     def make_request(self, method, path=None, *args, **kwargs):
         """ Makes a request on the resource. """
@@ -189,3 +208,9 @@ class Container(Node):
         
     def __repr__(self):
         return 'Container({0})'.format(self.name.encode("utf-8"))
+
+    def __iter__(self):
+        """ Returns an interator based on results of self.list() """
+        listing = self.objects()
+        for obj in listing:
+            yield obj
