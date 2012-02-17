@@ -51,10 +51,29 @@ class BaseAuthentication(object):
         Base Authentication class. To be inherited if you want to create
         a new Authentication method. authenticate() should be overwritten.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, auth_url=None,
+                       protocol='https',
+                       datacenter='dal05',
+                       network='public'):
+        self.auth_url = auth_url
+        self.protocol = protocol or 'https'
+        self.datacenter = datacenter or 'dal05'
+        self.network = network or 'public'
+
+        self.use_default_storage_url = True
+        if not auth_url:
+            self.use_default_storage_url = False
+            self.auth_url = consts.ENDPOINTS[self.datacenter][self.network][self.protocol]
         self.storage_url = None
         self.auth_headers = {}
         self.auth_token = None
+
+    def get_storage_url(self, storage_urls):
+        if self.use_default_storage_url:
+            return storage_urls[storage_urls['default']]
+        if self.network in storage_urls:
+            return storage_urls[self.network]
+        return None
 
     def authenticate(self):
         """ 
