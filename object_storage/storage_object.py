@@ -1,5 +1,5 @@
 """
-    Object module
+    StorageObject module
 
     See COPYING for license information
 """
@@ -7,54 +7,109 @@ import json
 import mimetypes
 import os
 import StringIO
+import UserDict
 
 from object_storage.node import Node
+from object_storage.utils import get_path
 
-class Object(Node):
+class StorageObjectModel(UserDict.UserDict):
+    def __init__(self, controller, container, name, headers={}):
+        self.container = container
+        self.name = name
+        _headers = {}
+
+        # Lowercase headers
+        for key, value in headers.iteritems():
+            _key = key.lower()
+            _headers[_key] = value
+        self.headers = _headers
+        self._meta = None
+        
+        _properties = {'container': self.container, 'name': self.name}
+
+        _properties['size'] = float(self.headers.get('content-length') or\
+                                    self.headers.get('bytes') or\
+                                    self.headers.get('size') or 0)
+        _properties['content_type'] = self.headers.get('content_type') or\
+                                      self.headers.get('content-type')
+        _properties['last_modified'] = self.headers.get('last_modified') or\
+                                       self.headers.get('last-modified')
+        _properties['hash'] = self.headers.get('etag') or\
+                              self.headers.get('hash')
+        _properties['manifest'] = self.headers.get('manifest')
+        _properties['content_encoding'] = self.headers.get('content_encoding') or\
+                                          self.headers.get('content-encoding')
+        _properties['cache_control'] = self.headers.get('cache-control')
+        _properties['cdn_url'] = self.headers.get('x-cdn-url')
+        _properties['cdn_ssl_url'] = self.headers.get('x-cdn-ssl-url')
+
+        _properties['path'] = controller.path
+        _properties['url'] = controller.url
+
+        meta = {}
+        for key, value in self.headers.iteritems():
+            if key.startswith('meta_'):
+                meta[key[5:]] = value
+            elif key.startswith('x-object-meta-'):
+                meta[key[14:]] = value
+        self.meta = meta
+        _properties['meta'] = self.meta
+
+        self.properties = _properties
+        self.data = self.properties
+
+class StorageObject:
     """ 
         Representation of a Object Storage object.
     """
-    type = 'object'
-    property_names = ['container', 'name', 'content_type', 
-                      'last_modified', 'size', 'hash', 
-                      'manifest', 'content_encoding']
-    meta_prefixes = ['meta_', 'x-object-meta-']
-    property_mappings = {
-            'content_type': 'content_type',
-            'content-type': 'content_type',
-            'last_modified': 'last_modified',
-            'last-modified': 'last_modified',
-            'content-length': 'size',
-            'size': 'size',
-            'bytes': 'size',
-            'hash': 'hash',
-            'etag': 'hash',
-            'date': 'date',
-            'x-object-manifest': 'manifest',
-            'content-encoding': 'content_encoding',
-            'content_encoding': 'content_encoding',
-            'Cache-Control': 'cache_control',
-        }
-
-    def __init__(self, container, name, properties=None, client=None):
+    def __init__(self, container, name, headers=None, client=None):
         self.container = container
         self.name = name
-        self.content_type = None
-        self.last_modified = None
-        self.size = None
-        self.hash = None
-        self.manifest = None
-        self.content_encoding = None
-        self.cache_control = None
-        self.meta = {}
-        
-        self._cdn_url = None
-        self._cdn_ssl_url = None
-
-        if properties:
-            self._process_props(properties)
         self.client = client
-        super(Object, self).__init__()
+        self.model = None
+        self.content_type = None
+        if headers:
+            self.model = StorageObjectModel(self, self.container, self.name, headers)
+
+    def load(self):
+        def _formatter(res):
+            self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+            return self
+        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+
+    def get_info(self):
+        if not self.model:
+            self.load()
+        return self.model.properties
+
+    @property
+    def properties(self):
+        return self.get_info()
+    props = properties
+
+    @property
+    def headers(self):
+        if not self.model:
+            self.load()
+        return self.model.headers
+
+    @property
+    def meta(self):
+        if not self.model:
+            self.load()
+        return self.model.meta
+
+    @property
+    def url(self):
+        """ Get the URL of the object """
+        path = [self.container, self.name]
+        return self.client.get_url(path)
+
+    @property
+    def path(self):
+        """ Get the path of the object """
+        path = [self.container, self.name]
+        return get_path(path)
     
     def list(self, limit=None, marker=None):
         """ Get list
@@ -75,22 +130,27 @@ class Object(Node):
                 for item in items:
                     obj = self.client.object(self.container,
                                              item['name'],
-                                             properties=item)
+                                             headers=item)
                     objects.append(obj)
             return objects
         return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)
     
     def is_dir(self):
         """ returns True if content_type is 'text/directory' """
-        return self.content_type == 'text/directory'
+        return self.model.content_type == 'text/directory'
+
+    def set_metadata(self, meta):
+        meta_headers = {}
+        for k, v in meta.iteritems():
+            meta_headers["x-object-meta-{0}".format(k)] = v
+        return self.make_request('POST', headers=meta_headers)
 
     def create(self):
         """ Creates the object. This WILL overrite the current data if any. """
-        if not self.content_type:
-            self.content_type = mimetypes.guess_type(self.name)[0]
-        if not self.content_type:
-            self.content_type = 'text/plain'
-        headers = self._headers()
+        content_type = self.content_type or mimetypes.guess_type(self.name)[0]
+        if not content_type:
+            content_type = 'application/octet-stream'
+        headers = {'content-type': content_type, 'Content-Length': '0'}
         def _formatter(res):
             return self
         return self.make_request('PUT', headers=headers, formatter=_formatter)
@@ -118,29 +178,32 @@ class Object(Node):
         
     def send(self, data):
         """ Sends data for an object. Takes a string or an open file object. """
+        size = None
         if isinstance(data, file):
             try:
                 data.flush()
             except IOError:
                 pass
-            self.size = int(os.fstat(data.fileno())[6])
+            size = int(os.fstat(data.fileno())[6])
         else:
             #data = StringIO.StringIO(data)
-            self.size = len(data)
+            size = len(data)
         
-        headers = self._headers()
-        
-        if not self.content_type:
+        headers = {}
+        content_type = self.content_type
+        if not content_type:
             _type = None
             if hasattr(data, 'name'):
                 _type = mimetypes.guess_type(data.name)[0]
-            self.content_type = _type or 'application/octet-stream'
-        if self.size is None:
-            del headers['Content-Length']
+            content_type = _type or mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
+        headers['Content-Type'] = content_type
+
+        if size:
+            headers['Content-Length'] = str(size)
+        else:
             headers['Transfer-Encoding'] = 'chunked'
-        def _formatter(res):
-            return True
-        return self.make_request('PUT', data=data, headers=headers, formatter=_formatter)
+
+        return self.make_request('PUT', data=data, headers=headers, formatter=lambda r: self)
     write = send
    
     def upload_directory(self, directory):
@@ -174,14 +237,14 @@ class Object(Node):
                 return self.send(_file)
 
     def copy_from(self, old_obj, *args, **kwargs):
-        headers = old_obj._headers()
+        headers = {}
         headers['X-Copy-From'] = old_obj.path
         headers['Content-Length'] = "0"
         return self.make_request('PUT', headers=headers, *args, **kwargs)
 
     def copy_to(self, new_obj, *args, **kwargs):
         """ Issues a copy-to command """
-        headers = self._headers()
+        headers = {}
         headers['Destination'] = new_obj.path
         headers['Content-Length'] = "0"
         return self.make_request('COPY', headers=headers, *args, **kwargs)
@@ -192,7 +255,7 @@ class Object(Node):
             return self.delete()
         def _copy_to(res):
             return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
-        return new_obj.make_request('PUT', headers=self._headers(), formatter=_copy_to)
+        return new_obj.make_request('PUT', formatter=_copy_to)
 
     def search(self, *args, **kwargs):
         """ Search within path """
@@ -206,73 +269,10 @@ class Object(Node):
         headers = {'X-Context': 'cdn', 'X-Cdn-Purge': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 
-    def _headers(self):
-        """ Returns a dict of all of the known header values for an object. """
-        headers = {}
-        length = self.size or 0
-        headers['Content-Length'] = str(length)
-        if self.hash:
-            headers['ETag'] = self.hash
-
-        if self.content_type:
-            headers['Content-Type'] = self.content_type
-        else:
-            headers['Content-Type'] = 'application/octet-stream'
-
-        if self.manifest:
-            headers['X-Object-Manifest'] = self.manifest
-            
-        if self.content_encoding:
-            headers['Content-Encoding'] = self.content_encoding
-
-        if self.cache_control:
-            headers['Cache-Control'] = self.cache_control
-        
-        for key in self.meta:
-            headers['X-Object-Meta-' + key] = self.meta[key]
-        return headers
-
-    def _get_cdn_urls(self, callback=None):
-        def _formatter(res):
-            self._cdn_url = res.headers.get('x-cdn-url', None)
-            self._cdn_ssl_url = res.headers.get('x-cdn-ssl-url', None)
-            if callback:
-                return callback()
-        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
-
-    @property
-    def cdn_url(self):
-        if self._cdn_url is None:
-            def cb():
-                return self._cdn_url
-            self._get_cdn_urls(callback=cb)
-        return self._cdn_url
-
-    @property
-    def cdn_ssl_url(self):
-        if self._cdn_ssl_url is None:
-            def cb():
-                return self._cdn_ssl_url
-            self._get_cdn_urls(callback=cb)
-        return self._cdn_ssl_url
-        
-    @property
-    def url(self):
-        """ Get the URL of the object """
-        path = [self.container, self.name]
-        return self.client.get_url(path)
-
-    @property
-    def path(self):
-        """ Get the path of the object """
-        path = [self.container, self.name]
-        return self.client.get_path(path)
-
     def get_chunkable(self):
         """ Returns a 'chunkable' connection. This is used for chunked 
             uploading of files. This is needed for transient data uploads """
-        chunkable = self.client.get_chunkable([self.container, self.name], 
-                                              headers=self._headers())
+        chunkable = self.client.get_chunkable([self.container, self.name])
         return chunkable
 
     def make_request(self, method, path=None, *args, **kwargs):
@@ -285,7 +285,7 @@ class Object(Node):
         return self.client.object(self.container, new_name)
         
     def __str__(self):
-        return 'Object({0}, {1})'.format(self.container.encode("utf-8"), self.name.encode("utf-8"))
+        return 'StorageObject({0}, {1})'.format(self.container.encode("utf-8"), self.name.encode("utf-8"))
     __repr__ = __str__
 
     def __enter__(self):
@@ -293,3 +293,9 @@ class Object(Node):
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
+
+    def __iter__(self):
+        """ Returns an interator based on results of self.list() """
+        listing = self.objects()
+        for obj in listing:
+            yield obj

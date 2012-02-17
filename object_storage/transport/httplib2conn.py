@@ -10,6 +10,11 @@ from object_storage import errors
 from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection, Response
 import httplib2
 
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -70,8 +75,6 @@ class Authentication(BaseAuthentication):
         super(Authentication, self).__init__(*args, **kwargs)
         self.username = username
         self.api_key = api_key
-        self.auth_token = self.storage_url = None
-        self.auth_url = kwargs.get('auth_url', consts.SL_AUTH_URL)
 
     def authenticate(self):
         """ Does authentication """
@@ -87,12 +90,17 @@ class Authentication(BaseAuthentication):
 
         if response.status_code == 401:
             raise errors.AuthenticationError('Invalid Credentials')
-
         response.raise_for_status()
+        try:
+            storage_options = json.loads(response.content)['storage']
+        except ValueError:
+            raise errors.StorageURLNotFound("Could not parse services JSON.")
 
-        self.storage_url = response.headers['x-storage-url']
         self.auth_token = response.headers['x-auth-token']
+        self.storage_url = self.get_storage_url(storage_options)
+        self.auth_headers = {'X-Auth-Token': self.auth_token}
+        if not self.storage_url:
+            self.storage_url = response.headers['x-storage-url']
+            raise errors.StorageURLNotFound("Could not find defined storage URL. Using default.")
         if not self.auth_token or not self.storage_url:
             raise errors.AuthenticationError('Invalid Authentication Response')
-
-        self.auth_headers = {'X-Auth-Token': self.auth_token}

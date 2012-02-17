@@ -6,11 +6,15 @@ Installation
 ------------
 Download source and run:
 
-```python setup.py install```
+```
+python setup.py install
+```
 
 To build the documentation (requires sphinx):
 
-```python setup.py build_sphinx```
+```
+python setup.py build_sphinx
+```
 
 Basic Usage
 ----------
@@ -18,7 +22,7 @@ Basic Usage
 ```python
 import object_storage
 
-sl_storage = object_storage.get_client('YOUR_USERNAME', 'YOUR_API_KEY')
+sl_storage = object_storage.get_client('YOUR_USERNAME', 'YOUR_API_KEY', datacenter='dal05')
 
 sl_storage.containers()
 # []
@@ -29,8 +33,11 @@ sl_storage['foo'].create()
 sl_storage.containers()
 # [Container(foo)]
 
+sl_storage['foo'].properties
+# {'count': 0, 'object_count': 0, 'name': 'foo', 'size': 0.0}
+
 sl_storage['foo']['bar.txt'].create()
-# Object(foo, sample_object.txt)
+# StorageObject(foo, sample_object.txt)
 
 sl_storage['foo']['bar.txt'].send('Plain-Text Content')
 # True
@@ -39,7 +46,7 @@ sl_storage['foo']['bar.txt'].read()
 # 'Plain-Text Content'
 
 sl_storage['foo'].objects()
-# [Object(foo, bar.txt)]
+# [StorageObject(foo, bar.txt)]
 
 sl_storage['foo']['bar.txt'].delete()
 # True
@@ -51,16 +58,16 @@ sl_storage['foo'].delete()
 Search Usage
 ------------
 ```python
-sl_storage.search('bar')
-# {'count': 2, 'total': 2, 'results': [Container(foo), Object(foo, foo_object)]}
+sl_storage.search({'q': 'foo'})
+# {'count': 2, 'total': 2, 'results': [Container(foo), StorageObject(bar, foo)]}
 
-sl_storage['foo'].search('bar.txt')
-# {'count': 1, 'total': 1, 'results': [Object(foo, bar.txt)]}
+sl_storage['foo'].search({'q': 'bar.txt'})
+# {'count': 1, 'total': 1, 'results': [StorageObject(foo, bar.txt)]}
 
-sl_storage.search('foo', type='container')
+sl_storage.search({'q': 'foo', 'type': 'container'})
 # {'count': 1, 'total': 1, 'results': [Container(foo)]}
 
-sl_storage.search('foo*baz')
+sl_storage.search({'q': 'foo*baz'})
 # {'count': 1, 'total': 1, 'results': [Container(foobarbaz)]}
 ```
 
