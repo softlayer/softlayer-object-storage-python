@@ -7,7 +7,6 @@ import json
 import os
 import UserDict
 from object_storage.storage_object import StorageObject
-from object_storage.node import Node
 from object_storage.utils import get_path
 
 class ContainerModel(UserDict.UserDict):
@@ -155,11 +154,10 @@ class Container:
             objects = []
             if res.content:
                 items = json.loads(res.content)
-                for item in items:
+                for item in items:  
                     if 'name' in item:
                         objects.append(self.object(item['name'], item))
             return objects
-
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
 
     def set_ttl(self, ttl):
@@ -168,13 +166,23 @@ class Container:
         headers = {'x-cdn-ttl': str(ttl)}
         return self.make_request('POST', headers=headers)
 
-    def enable_cdn(self, ttl=1440):
-        headers = {'x-container-read': '.r:*', 'x-cdn-ttl': str(ttl)}
+    def set_read_acl(self, acl):
+        headers = {'x-container-read': acl}
+        return self.make_request('POST', headers=headers)
+        
+    def set_write_acl(self, acl):
+        headers = {'x-container-write': acl}
         return self.make_request('POST', headers=headers)
 
-    def disable_cdn(self):
+    def make_public(self, ttl=1440):
+        headers = {'x-container-read': '.r:*', 'x-cdn-ttl': str(ttl)}
+        return self.make_request('POST', headers=headers)
+    enable_cdn = make_public
+
+    def make_private(self):
         headers = {'x-container-read': ' '}
         return self.make_request('POST', headers=headers)
+    disable_cdn = make_private
 
     def search(self, options={}):
         """ Search within container. """

@@ -18,7 +18,7 @@ class ClientTest(unittest.TestCase):
         datacenter = account.get('datacenter')
         network = account.get('network')
         protocol = account.get('protocol')
-        self.client = get_requests_client(username, api_key, 
+        self.client = get_httplib2_client(username, api_key, 
                                                     auth_url=auth_url, 
                                                     protocol=protocol, 
                                                     datacenter=datacenter, 
