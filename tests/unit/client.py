@@ -18,25 +18,25 @@ class ClientTest(unittest.TestCase):
         
     def test_container(self):
         self.client.container('container')
-        self.container_class.assert_called_once_with('container', client=self.client, properties=None)
+        self.container_class.assert_called_once_with('container', client=self.client, headers=None)
         
     def test_container_with_props(self):
         self.client.container('container', {'properties': 'property'})
-        self.container_class.assert_called_once_with('container', client=self.client, properties={'properties': 'property'})
+        self.container_class.assert_called_once_with('container', client=self.client, headers={'properties': 'property'})
         
     def test_get_container(self):
         loaded_item = Mock()
         self.container_class().load.return_value = loaded_item
         result = self.client.get_container('container_name')
         self.assert_(loaded_item == result)
-        self.container_class.assert_called_with('container_name', client=self.client, properties=None)
+        self.container_class.assert_called_with('container_name', client=self.client, headers=None)
         
     def test_create_container(self):
         created_item = Mock()
         self.container_class().create.return_value = created_item
         result = self.client.create_container('container_name')
         self.assert_(created_item == result, 'returns the container itself')
-        self.container_class.assert_called_with('container_name', client=self.client, properties=None)
+        self.container_class.assert_called_with('container_name', client=self.client, headers=None)
         
     def test_list_containers(self):
         self.connection.storage_url = 'storage_url'
@@ -49,18 +49,18 @@ class ClientTest(unittest.TestCase):
         
     def test_object(self):
         self.client.object('container', 'name')
-        self.object_class.assert_called_once_with('container', 'name', client=self.client, properties=None)
+        self.object_class.assert_called_once_with('container', 'name', client=self.client, headers=None)
         
     def test_object_with_props(self):
         self.client.object('container', 'name', {'properties': 'property'})
-        self.object_class.assert_called_once_with('container', 'name', client=self.client, properties={'properties': 'property'})
+        self.object_class.assert_called_once_with('container', 'name', client=self.client, headers={'properties': 'property'})
         
     def test_get_object(self):
         loaded_item = Mock()
         self.object_class().load.return_value = loaded_item
         result = self.client.get_object('object_name', 'container_name')
         self.assert_(loaded_item == result, "Returns the correct object")
-        self.object_class.assert_called_with('object_name', 'container_name', client=self.client, properties=None)
+        self.object_class.assert_called_with('object_name', 'container_name', client=self.client, headers=None)
         
     def test_make_request(self):
         self.connection.storage_url = 'storage_url'
@@ -95,16 +95,6 @@ class ClientTest(unittest.TestCase):
         self.connection.storage_url = 'storage_url'
         url = self.client.get_url(['path'])
         self.assert_(url == 'storage_url/path', "URL is returned correctly with a string path")
-
-    def test_get_path(self):
-        path = self.client.get_path(['path'])
-        self.assert_(path == 'path', "Path Returns correctly with one-item list parts")
-
-        path = self.client.get_path(['path', 'path2'])
-        self.assert_(path == 'path/path2', "Path Returns correctly with two-item list parts")
-
-        path = self.client.get_path('path/path2')
-        self.assert_(path == 'path/path2', "Path Returns correctly with a string parts")
 
     def test_get_chunkable(self):
         _headers = Mock()
