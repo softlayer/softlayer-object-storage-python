@@ -3,7 +3,6 @@
        
     See COPYING for license information
 """
-
 from object_storage.client import Client
 from object_storage.consts import __version__
 
@@ -17,7 +16,7 @@ def get_httplib2_client(username, password, auth_url=None, **kwargs):
 
     auth = Authentication(username, password, auth_url=auth_url, **kwargs)
     conn = AuthenticatedConnection(auth)
-    client = Client(username, password, auth_url=auth_url, connection=conn)
+    client = Client(username, password, connection=conn)
     return client
 
 def get_requests_client(username, password, auth_url=None, **kwargs):
@@ -26,7 +25,7 @@ def get_requests_client(username, password, auth_url=None, **kwargs):
 
     auth = Authentication(username, password, auth_url=auth_url, **kwargs)
     conn = AuthenticatedConnection(auth)
-    client = Client(username, password, auth_url=auth_url, connection=conn)
+    client = Client(username, password, connection=conn)
     return client
 
 def get_twisted_client(username, password, auth_url=None, **kwargs):
@@ -35,7 +34,7 @@ def get_twisted_client(username, password, auth_url=None, **kwargs):
 
     auth = Authentication(username, password, auth_url=auth_url, **kwargs)
     conn = AuthenticatedConnection(auth)
-    client = Client(username, password, auth_url=auth_url, connection=conn)
+    client = Client(username, password, connection=conn)
     
     d = auth.authenticate().addBoth(lambda r: client)
     return d

@@ -9,7 +9,6 @@ import os
 import StringIO
 import UserDict
 
-from object_storage.node import Node
 from object_storage.utils import get_path
 
 class StorageObjectModel(UserDict.UserDict):
@@ -169,12 +168,16 @@ class StorageObject:
             return res.content
         return self.make_request('GET', headers=headers, formatter=_formatter)
         
-    def iter_content(self, chunk_size=10 * 1024):
+    def chunk_download(self, chunk_size=10 * 1024):
         """ Returns an iterator to read the object data. """
-        req = self.make_request('GET', return_response=False)
-        req.send()
-        res = req.response
-        return res.iter_content(chunk_size=chunk_size)
+        return self.client.chunk_download([self.container, self.name], chunk_size=chunk_size)
+    iter_content = chunk_download
+    
+    def chunk_upload(self):
+        """ Returns a 'chunkable' connection. This is used for chunked 
+            uploading of files. This is needed for transient data uploads """
+        chunkable = self.client.chunk_upload([self.container, self.name])
+        return chunkable
         
     def send(self, data):
         """ Sends data for an object. Takes a string or an open file object. """
@@ -268,12 +271,6 @@ class StorageObject:
     def purge_cdn(self):
         headers = {'X-Context': 'cdn', 'X-Cdn-Purge': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
-
-    def get_chunkable(self):
-        """ Returns a 'chunkable' connection. This is used for chunked 
-            uploading of files. This is needed for transient data uploads """
-        chunkable = self.client.get_chunkable([self.container, self.name])
-        return chunkable
 
     def make_request(self, method, path=None, *args, **kwargs):
         """ returns a request object """

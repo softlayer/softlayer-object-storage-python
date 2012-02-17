@@ -96,15 +96,15 @@ class ClientTest(unittest.TestCase):
         url = self.client.get_url(['path'])
         self.assert_(url == 'storage_url/path', "URL is returned correctly with a string path")
 
-    def test_get_chunkable(self):
+    def test_chunk_upload(self):
         _headers = Mock()
         _chunkable = Mock()
         _url = Mock()
         self.client.get_url = Mock(return_value=_url)
-        self.connection.get_chunkable.return_value = _chunkable
-        chunkable = self.client.get_chunkable('path', headers=_headers)
+        self.connection.chunk_upload.return_value = _chunkable
+        chunkable = self.client.chunk_upload('path', headers=_headers)
         self.assert_(chunkable == _chunkable, "Chunkable returns from conn.get_chunkable")
-        self.connection.get_chunkable.assert_called_once_with(_url, _headers)
+        self.connection.chunk_upload.assert_called_once_with('PUT', _url, _headers)
 
     def test_getitem(self):
         _container = Mock()

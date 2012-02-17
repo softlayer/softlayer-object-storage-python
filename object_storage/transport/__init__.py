@@ -3,7 +3,6 @@
 
     See COPYING for license information
 """
-
 import httplib
 from socket  import timeout
 from urlparse import urlparse
@@ -11,7 +10,7 @@ from object_storage.errors import ResponseError, NotFound
 from object_storage.utils import unicode_quote
 from object_storage import consts
 
-import urllib
+import urllib, urllib2
 
 class Response(object):
     def __init__(self):
@@ -42,9 +41,24 @@ class BaseAuthenticatedConnection:
         """ Get default headers for this connection """
         return dict([('User-Agent', consts.USER_AGENT)] + self.auth_headers.items())
 
-    def get_chunkable(self, url, headers=None):
+    def chunk_upload(self, method, url, headers=None):
         """ Returns new ChunkedConnection """
-        return ChunkedConnection(self, url, headers)
+        headers = headers or {}
+        headers.update(self.get_headers())
+        return ChunkedUploadConnection(self, method, url, headers)
+        
+    def chunk_download(self, url, chunk_size=10*1024):
+        """ Returns new ChunkedConnection """
+        headers = self.get_headers()
+        req = urllib2.Request(url)
+        for k, v in headers.iteritems():
+            req.add_header(k, v)
+        r = urllib2.urlopen(req)
+        while True:
+            buffer = r.read(chunk_size)
+            if not buffer:
+                break
+            yield buffer
 
 class BaseAuthentication(object):
     """ 
@@ -84,26 +98,18 @@ class BaseAuthentication(object):
         self.auth_token = 'AUTH_TOKEN'
         self.auth_headers = {'X-Auth-Token': 'AUTH_TOKEN'}
 
-class ChunkedConnection:
+class ChunkedUploadConnection:
     """ 
         Chunked Connection class.
-        setup() will initiate a HTTP connection.
         send_chunk() will send more data.
         finish() will end the request.
     """
-    def __init__(self, conn, url, headers=None):
+    def __init__(self, conn, method, url, headers=None, size=None):
         self.conn = conn
-        self.url = url
+        self.method = method
         self.req = None
-        self.headers = headers
-
-    def setup(self, size=None):
-        """ 
-            Sets up the connection. Will optionally accept a size or
-            else will use a chunked Transfer-Encoding.
-        """
-        headers = self.conn.get_headers()
-        headers.update(self.headers)
+        headers = headers or {}
+        
         if size is None:
             if 'Content-Length' in headers:
                 del headers['Content-Length']
@@ -114,7 +120,7 @@ class ChunkedConnection:
         if 'ETag' in headers:
             del headers['ETag']
 
-        url_parts = urlparse(self.url)
+        url_parts = urlparse(url)
         self.req = httplib.HTTPConnection(url_parts.hostname, url_parts.port)
 
         path = requote_path(url_parts.path)
@@ -126,7 +132,7 @@ class ChunkedConnection:
         except Exception, err:
             raise ResponseError(0, 'Disconnected')
 
-    def send_chunk(self, chunk):
+    def send(self, chunk):
         """ Sends a chunk of data. """
         try:
             self.req.send("%X\r\n" % len(chunk))
@@ -144,12 +150,25 @@ class ChunkedConnection:
         except timeout, err:
             raise err
 
-        response = self.req.getresponse()
-        response.read()
-
-        if (response.status < 200) or (response.status > 299):
-           raise ResponseError(response.status, response.reason)
-
+        res = self.req.getresponse()
+        content = res.read()
+        
+        r = Response()
+        r.status_code = res.status
+        r.version = res.version
+        r.headers = dict(res.getheaders())
+        r.content = content
+        r.raise_for_status()
+        return r
+        
+class ChunkedDownloadConnection:
+    def __init__(self, conn, method, url, headers=None):
+        self.conn = conn
+        self.method = method
+        self.url = url
+        self.req = None
+        self.headers = headers or {}
+        
 def requote_path(path):
     """Re-quote the given URL path component.
 
