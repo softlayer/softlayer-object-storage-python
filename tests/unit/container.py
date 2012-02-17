@@ -7,36 +7,11 @@ class ClientTest(unittest.TestCase):
     def test_instance_setup(self):
         self.assert_(self.client == self.container.client, "client is set")
         self.assert_(self.container.name == 'CONTAINER', "name is set")
-        self.assert_(self.container.size == None, "size is None")
-        self.assert_(self.container.count == None, "count is None")
-        self.assert_(self.container.meta == {}, "meta is {}")
 
     def test_create(self):
         self.container.make_request = Mock()
         result = self.container.create()
         self.container.make_request.called_once_with('PUT')
-
-    def test_save_headers(self):
-        _headers = Mock(return_value={'header': 'here'})
-        self.container._headers = _headers
-        self.container.make_request = Mock()
-        
-        result = self.container.save_headers()
-        self.container.make_request.called_once_with('POST', headers=_headers, data='')
-
-    def test_headers(self):
-        self.container.meta = {'meta_name': 'here'}
-        headers = self.container._headers()
-        self.assert_(headers == {'X-Container-Meta-meta_name': 'here'})
-
-    def test_headers_with_read_write(self):
-        self.container.meta = {'meta_name': 'here'}
-        self.container.read = 'r:*'
-        self.container.write = 'r:*'
-        headers = self.container._headers()
-        self.assert_(headers['X-Container-Write'] == 'r:*')
-        self.assert_(headers['X-Container-Read'] == 'r:*')
-        self.assert_(headers['X-Container-Meta-meta_name'] == 'here')
 
     def test_delete(self):
         result = self.container.delete()
@@ -72,8 +47,9 @@ class ClientTest(unittest.TestCase):
         pass
 
     def test_search(self, *args, **kwargs):
-        self.container.search(1, 2, a1=1, a2=2)
-        self.client.search.called_once_with(1, 2, container=self.container.name, a1=1, a2=2)
+        options = {'q': 'query'}
+        self.container.search(options)
+        self.client.search.called_once_with({'q': 'query', 'path': self.container.name})
 
     def test_get_object(self):
         _name = Mock()

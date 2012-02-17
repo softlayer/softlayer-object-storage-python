@@ -14,4 +14,4 @@ class BaseAuthenticationTest(unittest.TestCase):
         self.assert_(self.auth.auth_token == 'AUTH_TOKEN', "auth_token set correctly")
 
     def setUp(self):
-        self.auth = BaseAuthentication('username', 'api_key', auth_url='auth_url')
+        self.auth = BaseAuthentication(auth_url='auth_url')

@@ -12,3 +12,17 @@ def unicode_quote(s):
         return urllib.quote(s.encode("utf-8"))
     else:
         return urllib.quote(str(s))
+
+
+def get_path(parts=None):
+    """ 
+        Returns the path to a resource. Parts can be a list of strings or 
+        a string.
+    """
+    path = parts
+    if parts:
+        if isinstance(parts, list):
+            path = '/'.join(map(unicode_quote, parts))
+        else:
+            path = '/'.join(map(unicode_quote, path.split('/')))
+    return path

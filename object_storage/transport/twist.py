@@ -152,17 +152,24 @@ class Authentication(BaseAuthentication):
         super(Authentication, self).__init__(*args, **kwargs)
         self.username = username
         self.api_key = api_key
-        self.auth_token = self.storage_url = None
-        self.auth_url = kwargs.get('auth_url', consts.SL_AUTH_URL)
 
-    def _authenticate(self, req):
-        if req.status_code == 401:
+    def _authenticate(self, response):
+        if response.status_code == 401:
             raise errors.AuthenticationError('Invalid Credentials')
 
-        req.raise_for_status()
+        response.raise_for_status()
 
-        self.storage_url = req.headers['X-Storage-Url']
-        self.auth_token = req.headers['X-Auth-Token']
+        try:
+            storage_options = json.loads(response.content)['storage']
+        except ValueError:
+            raise errors.StorageURLNotFound("Could not parse services JSON.")
+
+        self.auth_token = response.headers['x-auth-token']
+        self.storage_url = self.get_storage_url(storage_options)
+        self.auth_headers = {'X-Auth-Token': self.auth_token}
+        if not self.storage_url:
+            self.storage_url = response.headers['x-storage-url']
+            raise errors.StorageURLNotFound("Could not find defined storage URL. Using default.")
         if not self.auth_token or not self.storage_url:
             raise errors.AuthenticationError('Invalid Authentication Response')
 
@@ -171,9 +178,9 @@ class Authentication(BaseAuthentication):
         headers = {'X-Storage-User': self.username,
                    'X-Storage-Pass': self.api_key,
                    'Content-Length': '0'}
-        req = make_request('GET', self.auth_url, headers=headers)
-        req.addBoth(self._authenticate)
-        return req
+        d = make_request('GET', self.auth_url, headers=headers)
+        d.addBoth(self._authenticate)
+        return d
 
 class WebClientContextFactory(ClientContextFactory):
     def getContext(self, hostname, port):
