@@ -1,9 +1,9 @@
 import unittest
 from mock import Mock, MagicMock
 from object_storage.container import Container
-from object_storage.object import Object
+from object_storage.storage_object import StorageObject
 
-class ClientTest(unittest.TestCase):
+class ContainerTest(unittest.TestCase):
     def test_instance_setup(self):
         self.assert_(self.client == self.container.client, "client is set")
         self.assert_(self.container.name == 'CONTAINER', "name is set")
@@ -22,7 +22,6 @@ class ClientTest(unittest.TestCase):
         result = self.container.delete(recursive=True)
         self.container.delete_all_objects.called_once_with()
         self.client.delete_container.called_once_with(self.container.name)
-        
 
     def test_delete_all_objects(self):
         _item1 = Mock()
@@ -38,7 +37,7 @@ class ClientTest(unittest.TestCase):
         self.client.delete_object.called_once_with(self.container, 'OBJECT')
 
     def test_delete_object_with_object(self):
-        _object = Mock(spec=Object)
+        _object = Mock(spec=StorageObject)
         _object.name = 'OBJECT'
         self.container.delete_object(_object)
         self.client.delete_object.called_once_with(self.container, 'OBJECT')

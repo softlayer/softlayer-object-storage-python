@@ -70,7 +70,6 @@ class Authentication(BaseAuthentication):
     """
         Authentication class.
     """
-
     def __init__(self, username, api_key, *args, **kwargs):
         super(Authentication, self).__init__(*args, **kwargs)
         self.username = username
@@ -81,7 +80,7 @@ class Authentication(BaseAuthentication):
         headers = {'X-Storage-User': self.username,
                    'X-Storage-Pass': self.api_key,
                    'Content-Length': '0'}
-        http = httplib2.Http(".cache", disable_ssl_certificate_validation=True)
+        http = httplib2.Http(disable_ssl_certificate_validation=True)
         res, content = http.request(self.auth_url, 'GET', headers=headers)
         response = Response()
         response.headers = res

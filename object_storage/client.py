@@ -8,17 +8,8 @@ try:
 except ImportError:
     import json
 
-try:
-    from object_storage.transport.httplib2conn import AuthenticatedConnection, Authentication
-except ImportError:
-    try:
-        from object_storage.transport.requestsconn import AuthenticatedConnection, Authentication
-    except ImportError:
-        from object_storage.transport.twist import AuthenticatedConnection, Authentication
-
 from object_storage.container import Container
 from object_storage.storage_object import StorageObject
-from object_storage.node import Node
 from object_storage.utils import get_path
 
 from object_storage import errors
@@ -66,20 +57,14 @@ class Client(object):
     """
         Client class. Primary interface for the client.
     """
-    def __init__(self, username=None, api_key=None, auth_url=None, **kwargs):
+    def __init__(self, username=None, api_key=None, connection=None, **kwargs):
         self.username = username
         self.api_key = api_key
         self.delimiter = kwargs.get('delimiter', '/')
-
         self.container_class = kwargs.get('container_class', Container)
         self.object_class = kwargs.get('object_class', StorageObject)
-        
         self.storage_url = None
-        
-        self.conn = kwargs.get('connection', None)
-        if not self.conn:
-            auth = kwargs.get('auth', Authentication(username, api_key, auth_url=auth_url))
-            self.conn = AuthenticatedConnection(auth)
+        self.conn = connection
 
         self.model = None
 
@@ -270,10 +255,14 @@ class Client(object):
         result = self.conn.make_request(method, url, *args, **kwargs)
         return result
 
-    def get_chunkable(self, path, headers=None):
+    def chunk_download(self, path, chunk_size=10*1024, headers=None):
+        url = self.get_url(path)
+        return self.conn.chunk_download(url, chunk_size=chunk_size)
+
+    def chunk_upload(self, path, headers=None):
         """ Returns a chunkable connection object at the given path. """
         url = self.get_url(path)
-        return self.conn.get_chunkable(url, headers)
+        return self.conn.chunk_upload('PUT', url, headers)
 
     def __getitem__(self, name):
         """ Returns a container object with the given name """
