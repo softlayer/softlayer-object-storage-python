@@ -17,40 +17,62 @@ except ImportError:
         from object_storage.transport.twist import AuthenticatedConnection, Authentication
 
 from object_storage.container import Container
-from object_storage.object import Object
+from object_storage.storage_object import StorageObject
 from object_storage.node import Node
-from object_storage.utils import unicode_quote
+from object_storage.utils import get_path
 
 from object_storage import errors
 
 import logging
+import UserDict
 logger = logging.getLogger(__name__)
 
-class Client(Node):
+class AccountModel(UserDict.UserDict):
+    def __init__(self, controller, headers={}):
+        _headers = {}
+
+        # Lowercase headers
+        for key, value in headers.iteritems():
+            _key = key.lower()
+            _headers[_key] = value
+        self.headers = _headers
+        self._meta = None
+
+        _properties = {}
+        
+        _properties['container_count'] = int(self.headers.get('x-account-container-count') or\
+                                             self.headers.get('count') or 0)
+        _properties['object_count'] = int(self.headers.get('x-account-object-count') or\
+                                          self.headers.get('object_count') or 0)
+        _properties['size'] = float(self.headers.get('x-account-bytes-used') or\
+                                    self.headers.get('size') or 0)
+
+        _properties['path'] = controller.path
+        _properties['url'] = controller.url
+
+        meta = {}
+        for key, value in self.headers.iteritems():
+            if key.startswith('meta_'):
+                meta[key[5:]] = value
+            elif key.startswith('x-account-meta-'):
+                meta[key[15:]] = value
+        self.meta = meta
+        _properties['meta'] = self.meta
+
+        self.properties = _properties
+        self.data = self.properties
+
+class Client(object):
     """
         Client class. Primary interface for the client.
     """
-    type = 'account'
-    property_names = ['size', 'count']
-    meta_prefixes = ['meta_']
-    property_mappings = {
-            'x-account-object-count': 'object_count',
-            'x-account-container-count': 'count',
-            'x-account-bytes-used': 'size',
-            'count': 'count',
-            'size': 'size',
-        }
-    
     def __init__(self, username=None, api_key=None, auth_url=None, **kwargs):
-        self.size = None
-        self.count = None
-        self.object_count = None
         self.username = username
         self.api_key = api_key
         self.delimiter = kwargs.get('delimiter', '/')
 
         self.container_class = kwargs.get('container_class', Container)
-        self.object_class = kwargs.get('object_class', Object)
+        self.object_class = kwargs.get('object_class', StorageObject)
         
         self.storage_url = None
         
@@ -59,18 +81,59 @@ class Client(Node):
             auth = kwargs.get('auth', Authentication(username, api_key, auth_url=auth_url))
             self.conn = AuthenticatedConnection(auth)
 
-        super(Client, self).__init__()
+        self.model = None
 
-    def search(self, query=None, path=None, **kwargs):
+    def load(self):
+        def _formatter(res):
+            self.model = AccountModel(self, res.headers)
+            return self
+        return self.make_request('HEAD', formatter=_formatter)
+
+    def get_info(self):
+        if not self.model:
+            self.load()
+        return self.model.properties
+
+    @property
+    def properties(self):
+        return self.get_info()
+    props = properties
+
+    @property
+    def headers(self):
+        if not self.model:
+            self.load()
+        return self.model.headers
+
+    @property
+    def meta(self):
+        if not self.model:
+            self.load()
+        return self.model.meta
+
+    @property
+    def path(self):
+        """ Returns the file-path. Always returns an empty string. """
+        return ''
+
+    @property
+    def url(self):
+        """ Returns the url of the resource. """
+        return self.get_url()
+
+    def is_dir(self):
+        """ Returns whether or not this is a directory. Always True. """
+        return True
+
+    def search(self, options={}):
         """
             Access the search interface.
         """
         default_params = {
-                    'q': query,
                     'format': 'json',
                  }
         params = {}
-        for key, val in kwargs.iteritems():
+        for key, val in options.iteritems():
             if key.startswith('q_'):
                 params["q.%s" % key[2:]] = val
             else:
@@ -78,10 +141,10 @@ class Client(Node):
         params = dict(default_params.items() + params.items())
         headers = {'X-Context': 'search'}
         _path = None
-        if kwargs.has_key('container'):
-            _path = [kwargs['container']]
-        if path and type(path) is not dict:
-            _path = [path]
+        if options.has_key('container'):
+            _path = [options['container']]
+        if 'path' in options and type(options['path']) is not dict:
+            _path = [options['path']]
         def _formatter(response):
             """
                 Formats search results.
@@ -92,11 +155,11 @@ class Client(Node):
             objs = []
             for item in items:
                 if 'type' not in item or item['type'] == 'container':
-                    objs.append(self.container(item['name'], properties=item))
+                    objs.append(self.container(item['name'], headers=item))
                 elif item['type'] == 'object':
                     obj = self.object(item['container'],
                                       item['name'],
-                                      properties=item)
+                                      headers=item)
                     objs.append(obj)
             count = int(headers.get('x-search-items-count', 0))
             total = int(headers.get('x-search-items-total', 0))
@@ -118,9 +181,9 @@ class Client(Node):
         """
         self.storage_url = url
 
-    def container(self, name, properties=None):
+    def container(self, name, headers=None):
         """ Makes a container object. """
-        return self.container_class(name, properties=properties, client=self)
+        return self.container_class(name, headers=headers, client=self)
 
     def get_container(self, name):
         """ 
@@ -128,13 +191,19 @@ class Client(Node):
             Can raise ResponseError
         """
         return self.container(name).load()
+
+    def set_metadata(self, meta):
+        meta_headers = {}
+        for k, v in meta.iteritems():
+            meta_headers["x-account-meta-{0}".format(k)] = v
+        self.make_request('POST', headers=meta_headers)
     
     def create_container(self, name):
         """ 
             Makes a container object and calls create() on it. CAn raise ResponseError
         """
         return self.container(name).create()
-    
+
     def delete_container(self, name, recursive=False):
         """ 
             Deletes a container. 
@@ -164,31 +233,15 @@ class Client(Node):
                     containers.append(self.container(name, item))
             return containers
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
-    list = containers
 
-    def list_cdn_containers(self, *args, **kwargs):
+    def public_containers(self, *args, **kwargs):
         kwargs['headers'] = {'X-Context': 'cdn'}
         return self.containers(*args, **kwargs)
-    list_cdn = list_cdn_containers
-    
-    def is_dir(self):
-        """ Returns whether or not this is a directory. Always True. """
-        return True
 
-    @property
-    def path(self):
-        """ Returns the file-path. Always returns an empty string. """
-        return ''
-    
-    @property
-    def url(self):
-        """ Returns the url of the resource. """
-        return self.get_url()
-
-    def object(self, container, name, properties=None):
+    def object(self, container, name, headers=None):
         """ Creates a storage object... object. """
         return self.object_class(container, name, 
-                                properties=properties, client=self)
+                                headers=headers, client=self)
         
     def get_object(self, container, name):
         """ Creates a storage object and calls load() on it """
@@ -208,22 +261,8 @@ class Client(Node):
             self.storage_url = self.conn.storage_url
             url = self.storage_url
         if path:
-            if isinstance(path, list):
-                path = "/".join(map(unicode_quote, path))
-            url = "%s/%s" % (url, path)
+            url = "%s/%s" % (url, get_path(path))
         return url
-
-    @classmethod
-    def get_path(cls, parts=None):
-        """ 
-            Returns the path to a resource. Parts can be a list of strings or 
-            a string.
-        """
-        path = parts
-        if parts:
-            if isinstance(parts, list):
-                path = "/".join(map(unicode_quote, parts))
-        return path
 
     def make_request(self, method, path=None, *args, **kwargs):
         """ Makes a request on a resource. """
@@ -239,3 +278,9 @@ class Client(Node):
     def __getitem__(self, name):
         """ Returns a container object with the given name """
         return self.container(name)
+
+    def __iter__(self):
+        """ Returns an interator based on results of self.containers() """
+        listing = self.containers()
+        for obj in listing:
+            yield obj

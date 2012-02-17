@@ -10,6 +10,12 @@ class ObjectStorageError(StandardError):
 class AuthenticationError(ObjectStorageError):
     """ Could not authenticate. """
     pass
+
+class StorageURLNotFound(AuthenticationError):
+    """ 
+        Raised when the requested protocol/network-type not found in Authentication response.
+    """
+    pass
     
 class ContainerExists(ObjectStorageError):
     """ Container already exists """
