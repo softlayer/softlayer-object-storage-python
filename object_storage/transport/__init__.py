@@ -55,10 +55,10 @@ class BaseAuthenticatedConnection:
             req.add_header(k, v)
         r = urllib2.urlopen(req)
         while True:
-            buffer = r.read(chunk_size)
-            if not buffer:
+            buff = r.read(chunk_size)
+            if not buff:
                 break
-            yield buffer
+            yield buff
 
 class BaseAuthentication(object):
     """ 
