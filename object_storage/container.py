@@ -6,6 +6,7 @@
 import json
 import os
 import UserDict
+from object_storage import errors
 from object_storage.storage_object import StorageObject
 from object_storage.utils import get_path
 
@@ -26,8 +27,8 @@ class ContainerModel(UserDict.UserDict):
         _properties['count'] = int(self.headers.get('x-container-object-count') or\
                                    self.headers.get('count') or 0)
         _properties['object_count'] = _properties['count']
-        _properties['size'] = float(self.headers.get('x-container-bytes-used') or\
-                                    self.headers.get('size') or 0)
+        _properties['size'] = int(self.headers.get('x-container-bytes-used') or\
+                                  self.headers.get('size') or 0)
         _properties['read'] = self.headers.get('x-container-read') or\
                               self.headers.get('read')
         _properties['write'] = self.headers.get('x-container-read') or\
@@ -61,6 +62,15 @@ class Container:
         self.model = None
         if headers:
             self.model = ContainerModel(self, self.name, headers)
+
+    def exists(self):
+        def _formatter(res):
+            self.model = ContainerModel(self, self.name, res.headers)
+            return True
+        try:
+            return self.make_request('HEAD', formatter=_formatter)
+        except errors.NotFound:
+            return False
 
     def load(self):
         def _formatter(res):
@@ -156,7 +166,7 @@ class Container:
                 items = json.loads(res.content)
                 for item in items:  
                     if 'name' in item:
-                        objects.append(self.object(item['name'], item))
+                        objects.append(self.storage_object(item['name'], item))
             return objects
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
 
@@ -193,14 +203,14 @@ class Container:
         """ Calls get_object() on the client. """
         return self.client.get_object(self.name, name)
 
-    def object(self, name, headers=None):
+    def storage_object(self, name, headers=None):
         """ Creates a new instance of Object """
-        return self.client.object(self.name, name, headers=headers)
+        return self.client.storage_object(self.name, name, headers=headers)
         
     def load_from_filename(self, filename):
         """ Creates an object from a file. Uses the basename of the file path as the object name. """
         name = os.path.basename(filename)
-        return self.object(name).load_from_filename(filename)
+        return self.storage_object(name).load_from_filename(filename)
 
     def make_request(self, method, path=None, *args, **kwargs):
         """ Makes a request on the resource. """
@@ -209,7 +219,7 @@ class Container:
     
     def __getitem__(self, name):
         """ Returns object corresponding to the given name """
-        return self.object(name)
+        return self.storage_object(name)
         
     def __str__(self):
         return self.name

@@ -35,8 +35,8 @@ class AccountModel(UserDict.UserDict):
                                              self.headers.get('count') or 0)
         _properties['object_count'] = int(self.headers.get('x-account-object-count') or\
                                           self.headers.get('object_count') or 0)
-        _properties['size'] = float(self.headers.get('x-account-bytes-used') or\
-                                    self.headers.get('size') or 0)
+        _properties['size'] = int(self.headers.get('x-account-bytes-used') or\
+                                  self.headers.get('size') or 0)
 
         _properties['path'] = controller.path
         _properties['url'] = controller.url
@@ -142,7 +142,7 @@ class Client(object):
                 if 'type' not in item or item['type'] == 'container':
                     objs.append(self.container(item['name'], headers=item))
                 elif item['type'] == 'object':
-                    obj = self.object(item['container'],
+                    obj = self.storage_object(item['container'],
                                       item['name'],
                                       headers=item)
                     objs.append(obj)
@@ -223,14 +223,14 @@ class Client(object):
         kwargs['headers'] = {'X-Context': 'cdn'}
         return self.containers(*args, **kwargs)
 
-    def object(self, container, name, headers=None):
+    def storage_object(self, container, name, headers=None):
         """ Creates a storage object... object. """
         return self.object_class(container, name, 
                                 headers=headers, client=self)
         
     def get_object(self, container, name):
         """ Creates a storage object and calls load() on it """
-        return self.object(container, name).load()
+        return self.storage_object(container, name).load()
     
     def delete_object(self, container, obj):
         """ Deletes object """
