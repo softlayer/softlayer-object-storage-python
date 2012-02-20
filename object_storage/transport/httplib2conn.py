@@ -33,10 +33,6 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         self.auth.authenticate()
         self._authenticate()
         
-    def get_chunkable(self, url, headers=None):
-        """ Returns new ChunkedConnection """
-        return ChunkedConnection(self, url, headers)
-
     def make_request(self, method, url=None, headers=None, formatter=None, params=None, data=None, *args, **kwargs):
         """ Makes a request """
         headers = headers or {}
