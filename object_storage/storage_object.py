@@ -9,6 +9,7 @@ import os
 import StringIO
 import UserDict
 
+from object_storage import errors
 from object_storage.utils import get_path
 
 class StorageObjectModel(UserDict.UserDict):
@@ -26,9 +27,9 @@ class StorageObjectModel(UserDict.UserDict):
         
         _properties = {'container': self.container, 'name': self.name}
 
-        _properties['size'] = float(self.headers.get('content-length') or\
-                                    self.headers.get('bytes') or\
-                                    self.headers.get('size') or 0)
+        _properties['size'] = int(self.headers.get('content-length') or\
+                                  self.headers.get('bytes') or\
+                                  self.headers.get('size') or 0)
         _properties['content_type'] = self.headers.get('content_type') or\
                                       self.headers.get('content-type')
         _properties['last_modified'] = self.headers.get('last_modified') or\
@@ -61,6 +62,7 @@ class StorageObject:
     """ 
         Representation of a Object Storage object.
     """
+    chunk_size=10*1024
     def __init__(self, container, name, headers=None, client=None):
         self.container = container
         self.name = name
@@ -69,6 +71,15 @@ class StorageObject:
         self.content_type = None
         if headers:
             self.model = StorageObjectModel(self, self.container, self.name, headers)
+
+    def exists(self):
+        def _formatter(res):
+            self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+            return True
+        try:
+            return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+        except errors.NotFound:
+            return False
 
     def load(self):
         def _formatter(res):
@@ -127,7 +138,7 @@ class StorageObject:
             if res.content:
                 items = json.loads(res.content)
                 for item in items:
-                    obj = self.client.object(self.container,
+                    obj = self.client.storage_object(self.container,
                                              item['name'],
                                              headers=item)
                     objects.append(obj)
@@ -167,11 +178,22 @@ class StorageObject:
         def _formatter(res):
             return res.content
         return self.make_request('GET', headers=headers, formatter=_formatter)
+
+    def save_to_filename(self, filename):
+       f = open(filename, 'wb')
+       conn = self.chunk_download()
+       try:
+           for data in conn:
+               f.write(data)
+       finally:
+           f.close()
         
-    def chunk_download(self, chunk_size=10 * 1024):
+    def chunk_download(self, chunk_size=None):
         """ Returns an iterator to read the object data. """
+        chunk_size = chunk_size or self.chunk_size
         return self.client.chunk_download([self.container, self.name], chunk_size=chunk_size)
     iter_content = chunk_download
+    __iter__ = chunk_download
     
     def chunk_upload(self):
         """ Returns a 'chunkable' connection. This is used for chunked 
@@ -189,9 +211,9 @@ class StorageObject:
                 pass
             size = int(os.fstat(data.fileno())[6])
         else:
-            #data = StringIO.StringIO(data)
-            size = len(data)
-        
+            if hasattr(data, '__len__'):
+                size = len(data)
+
         headers = {}
         content_type = self.content_type
         if not content_type:
@@ -201,7 +223,7 @@ class StorageObject:
             content_type = _type or mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
         headers['Content-Type'] = content_type
 
-        if size:
+        if size or size == 0:
             headers['Content-Length'] = str(size)
         else:
             headers['Transfer-Encoding'] = 'chunked'
@@ -220,14 +242,12 @@ class StorageObject:
                 files.append(os.path.relpath(os.path.join(root, _file)))
                 
         for _dir in directories:
-            # Create a list of 'create' request objects and execute them
             obj = self.__class__(self.container, _dir, client=self.client)
             obj.content_type = 'application/directory'
             obj.create()
         
         for _file in files:
-            # I expect to get a list of 'write' request objects
-            obj = self.__class__(self.container, file, client=self.client)
+            obj = self.__class__(self.container, _file, client=self.client)
             obj.load_from_filename(_file)
             
     def load_from_filename(self, filename):
@@ -276,10 +296,18 @@ class StorageObject:
         """ returns a request object """
         path = [self.container, self.name]
         return self.client.make_request(method, path, *args, **kwargs)
+
+    def fileno(self):
+        return 1
     
+    def __len__(self):
+        if not self.model:
+            self.load()
+        return int(self.model['size'])
+
     def __getitem__(self, name):
         new_name = self.client.delimiter.join([self.name, name])
-        return self.client.object(self.container, new_name)
+        return self.client.storage_object(self.container, new_name)
         
     def __str__(self):
         return 'StorageObject({0}, {1})'.format(self.container.encode("utf-8"), self.name.encode("utf-8"))
@@ -290,9 +318,3 @@ class StorageObject:
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
-
-    def __iter__(self):
-        """ Returns an interator based on results of self.list() """
-        listing = self.objects()
-        for obj in listing:
-            yield obj
