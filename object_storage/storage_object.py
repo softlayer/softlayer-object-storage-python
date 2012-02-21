@@ -152,7 +152,7 @@ class StorageObject:
     def set_metadata(self, meta):
         meta_headers = {}
         for k, v in meta.iteritems():
-            meta_headers["x-object-meta-{0}".format(k)] = v
+            meta_headers["X-Object-Meta-{0}".format(k)] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
@@ -310,7 +310,10 @@ class StorageObject:
         return self.client.storage_object(self.container, new_name)
         
     def __str__(self):
-        return 'StorageObject({0}, {1})'.format(self.container.encode("utf-8"), self.name.encode("utf-8"))
+        size = 'Unknown'
+        if self.model:
+            size = self.model.get('size', 0)
+        return 'StorageObject({0}, {1}, {2}B)'.format(self.container.encode("utf-8"), self.name.encode("utf-8"), size)
     __repr__ = __str__
 
     def __enter__(self):
