@@ -48,11 +48,11 @@ class ClientTest(unittest.TestCase):
         #                                                params={'format': 'json'})
         
     def test_object(self):
-        self.client.object('container', 'name')
+        self.client.storage_object('container', 'name')
         self.object_class.assert_called_once_with('container', 'name', client=self.client, headers=None)
         
     def test_object_with_props(self):
-        self.client.object('container', 'name', {'properties': 'property'})
+        self.client.storage_object('container', 'name', {'properties': 'property'})
         self.object_class.assert_called_once_with('container', 'name', client=self.client, headers={'properties': 'property'})
         
     def test_get_object(self):
