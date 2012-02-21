@@ -58,15 +58,15 @@ class ContainerTest(unittest.TestCase):
     def test_object(self):
         _name = Mock()
         _props = Mock()
-        self.container.object(_name, _props)
-        self.container.client.object.called_once_with(self.container.name, _name, properties=_props)
+        self.container.storage_object(_name, _props)
+        self.container.client.storage_object.called_once_with(self.container.name, _name, properties=_props)
 
     def test_load_from_filename(self):
         _obj = Mock()
-        self.container.object = Mock(return_value=_obj)
+        self.container.storage_object = Mock(return_value=_obj)
 
         self.container.load_from_filename('/dir/to/filename')
-        self.container.object.called_once_with('filename')
+        self.container.storage_object.called_once_with('filename')
         _obj.load_from_filename.called_once_with('/dir/to/filename')
 
     def test_path(self):
@@ -87,10 +87,10 @@ class ContainerTest(unittest.TestCase):
 
     def test_getitem(self):
         _obj = Mock()
-        self.container.object = Mock(return_value=_obj)
+        self.container.storage_object = Mock(return_value=_obj)
         obj = self.container['OBJECT']
         self.assert_(obj == _obj, "Object returns from container.object()")
-        self.container.object.assert_called_once_with('OBJECT')
+        self.container.storage_object.assert_called_once_with('OBJECT')
 
     def setUp(self):
         self.client = Mock()
