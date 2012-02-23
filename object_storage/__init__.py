@@ -36,5 +36,5 @@ def get_twisted_client(username, password, auth_url=None, **kwargs):
     conn = AuthenticatedConnection(auth)
     client = Client(username, password, connection=conn)
     
-    d = auth.authenticate().addBoth(lambda r: client)
+    d = conn.authenticate().addCallback(lambda r: client)
     return d
