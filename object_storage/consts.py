@@ -16,5 +16,25 @@ ENDPOINTS = {
           'http': "http://dal05.objectstorage.service.networklayer.com/auth/v1.0",
           'https': "https://dal05.objectstorage.service.networklayer.com/auth/v1.0"
         }
+      },
+      'ams01': {
+        'public': {
+          'http': "http://ams01.objectstorage.softlayer.net/auth/v1.0",
+          'https': "https://ams01.objectstorage.softlayer.net/auth/v1.0"
+        },
+        'private': {
+          'http': "http://ams01.objectstorage.service.networklayer.com/auth/v1.0",
+          'https': "https://ams01.objectstorage.service.networklayer.com/auth/v1.0"
+        }
+      },
+      'sng01': {
+        'public': {
+          'http': "http://sng01.objectstorage.softlayer.net/auth/v1.0",
+          'https': "https://sng01.objectstorage.softlayer.net/auth/v1.0"
+        },
+        'private': {
+          'http': "http://sng01.objectstorage.service.networklayer.com/auth/v1.0",
+          'https': "https://sng01.objectstorage.service.networklayer.com/auth/v1.0"
+        }
       }
     }
