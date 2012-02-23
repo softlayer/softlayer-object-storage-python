@@ -21,6 +21,8 @@ from twisted.web.iweb import IBodyProducer, UNKNOWN_LENGTH
 
 import urlparse, urllib
 
+import json
+
 """:param method: method for the new :class:`Request` object.
     :param url: URL for the new :class:`Request` object.
     :param params: (optional) Dictionary or bytes to be sent in the query string for the :class:`Request`.
@@ -28,28 +30,29 @@ import urlparse, urllib
     :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
 """
 
-def complete_request(resp, callback, load_body=True):
+def complete_request(resp, callback=None, load_body=True):
     r = Response()
     r.status_code = resp.code
     r.version = resp.version
     r.phrase = resp.phrase
     headers = {}
     for k, v in resp.headers.getAllRawHeaders():
-        r.headers[k] = v.pop()
+        r.headers[k.lower()] = v.pop()
 
     if r.status_code == 404:
         raise NotFound('Not found')
-    try:
-        r.raise_for_status()
-    except Exception, ex:
-        raise ResponseError(r.status_code, str(ex))
+    r.raise_for_status()
 
     if not load_body:
-        return callback(r)
+        if callback:
+            return callback(r)
+        return r
 
     def build_response(body):
         r.content = body
-        return callback(r)
+        if callback:
+            return callback(r)
+        return r
 
     finished = Deferred()
     resp.deliverBody(FullBodyReader(finished))
@@ -69,18 +72,20 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         self.token = None
         self.storage_url = None
         self.auth = auth
-        self._authenticate()
 
-    def make_request(self, method, url=None, *args, **kwargs):
-        headers = kwargs['headers'] or {}
+    def authenticate(self):
+        d = self.auth.authenticate()
+        d.addCallback(lambda r: self._authenticate())
+        return d
+
+    def make_request(self, method, url=None, headers=None, *args, **kwargs):
+        headers = headers or {}
         headers.update(self.get_headers())
-        kwargs['headers'] = headers
-        return make_request(method, url=None, *args, **kwargs)
+        return make_request(method, url=url, headers=headers, *args, **kwargs)
 
-def make_request(method, url=None, *args, **kwargs):
+def make_request(method, url=None, headers=None, *args, **kwargs):
     """ Makes a request """
-    headers = kwargs.get('headers', {})
-    kwargs['headers'] = Headers(dict([ (k, [v]) for k, v in headers.items() ]))
+    headers = Headers(dict([ (k, [v]) for k, v in headers.items() ]))
         
     formatter = None
     if 'formatter' in kwargs:
@@ -107,7 +112,7 @@ def make_request(method, url=None, *args, **kwargs):
     d = agent.request(
         method,
         url,
-        kwargs['headers'],
+        headers,
         body)
         
     load_body=True
@@ -164,7 +169,7 @@ class Authentication(BaseAuthentication):
         except ValueError:
             raise errors.StorageURLNotFound("Could not parse services JSON.")
 
-        self.auth_token = response.headers['x-auth-token']
+        self.auth_token = response.headers.get('x-auth-token', 'huh?')
         self.storage_url = self.get_storage_url(storage_options)
         self.auth_headers = {'X-Auth-Token': self.auth_token}
         if not self.storage_url:
@@ -179,7 +184,7 @@ class Authentication(BaseAuthentication):
                    'X-Storage-Pass': self.api_key,
                    'Content-Length': '0'}
         d = make_request('GET', self.auth_url, headers=headers)
-        d.addBoth(self._authenticate)
+        d.addCallback(self._authenticate)
         return d
 
 class WebClientContextFactory(ClientContextFactory):
