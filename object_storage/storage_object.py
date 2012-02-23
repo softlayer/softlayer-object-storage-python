@@ -278,7 +278,7 @@ class StorageObject:
             return self.delete()
         def _copy_to(res):
             return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
-        return new_obj.make_request('PUT', formatter=_copy_to)
+        return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
     def search(self, *args, **kwargs):
         """ Search within path """
