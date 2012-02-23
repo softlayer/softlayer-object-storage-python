@@ -24,7 +24,7 @@ setup(
     license='MIT',
     packages=find_packages(exclude=['test', 'ez_setup', 'examples']),
     test_suite='tests',
-    install_requires=['requests'],
+    install_requires=['httplib2'],
     setup_requires=['mock'],
     namespace_packages=[]
 )
