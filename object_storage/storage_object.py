@@ -280,9 +280,10 @@ class StorageObject:
             return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
         return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
-    def search(self, *args, **kwargs):
+    def search(self, options={}):
         """ Search within path """
-        return self.client.search(*args, path=[self.container, self.name], **kwargs)
+        options.update({'path': "%s/%s" % (self.container, self.name)})
+        return self.client.search(options)
 
     def prime_cdn(self):
         headers = {'X-Context': 'cdn', 'X-Cdn-Load': True}
