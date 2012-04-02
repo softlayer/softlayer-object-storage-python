@@ -79,8 +79,8 @@ class BaseAuthentication(object):
             self.use_default_storage_url = False
             self.auth_url = consts.ENDPOINTS[self.datacenter][self.network][self.protocol]
         self.storage_url = None
-        self.auth_headers = {}
         self.auth_token = None
+        self.authenticated = False
 
     def get_storage_url(self, storage_urls):
         if self.use_default_storage_url:
@@ -88,6 +88,10 @@ class BaseAuthentication(object):
         if self.network in storage_urls:
             return storage_urls[self.network]
         return None
+    
+    @property
+    def auth_headers(self):
+        return {'X-Auth-Token': 'AUTH_TOKEN'}
 
     def authenticate(self):
         """ 
@@ -96,7 +100,7 @@ class BaseAuthentication(object):
         """
         self.storage_url = 'STORAGE_URL'
         self.auth_token = 'AUTH_TOKEN'
-        self.auth_headers = {'X-Auth-Token': 'AUTH_TOKEN'}
+        self.authenticated = True
 
 class ChunkedUploadConnection:
     """ 

@@ -81,11 +81,14 @@ class StorageObject:
         except errors.NotFound:
             return False
 
-    def load(self):
+    def load(self, cdn=True):
+        headers = {}
+        if cdn:
+            headers.setdefault('X-Context', 'cdn')
         def _formatter(res):
             self.model = StorageObjectModel(self, self.container, self.name, res.headers)
             return self
-        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+        return self.make_request('HEAD', headers=headers, formatter=_formatter)
 
     def get_info(self):
         if not self.model:
@@ -195,10 +198,10 @@ class StorageObject:
     iter_content = chunk_download
     __iter__ = chunk_download
     
-    def chunk_upload(self):
+    def chunk_upload(self, headers=None):
         """ Returns a 'chunkable' connection. This is used for chunked 
             uploading of files. This is needed for transient data uploads """
-        chunkable = self.client.chunk_upload([self.container, self.name])
+        chunkable = self.client.chunk_upload([self.container, self.name], headers=headers)
         return chunkable
         
     def send(self, data):

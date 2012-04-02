@@ -72,11 +72,14 @@ class Container:
         except errors.NotFound:
             return False
 
-    def load(self):
+    def load(self, cdn=True):
+        headers = {}
+        if cdn:
+            headers.setdefault('X-Context', 'cdn')
         def _formatter(res):
             self.model = ContainerModel(self, self.name, res.headers)
             return self
-        return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+        return self.make_request('HEAD', headers=headers, formatter=_formatter)
 
     def get_info(self):
         if not self.model:
@@ -126,7 +129,7 @@ class Container:
         """ Creates container """
         def _formatter(res):
             return self
-        return self.make_request('PUT', formatter=_formatter)
+        return self.make_request('PUT', formatter=_formatter, headers={'Content-Length': '0'})
 
     def delete(self, recursive=False):
         """ Delete container """
