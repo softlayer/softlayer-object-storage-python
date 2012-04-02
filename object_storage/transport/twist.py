@@ -153,10 +153,17 @@ class Authentication(BaseAuthentication):
     """
         Authentication class.
     """
-    def __init__(self, username, api_key, *args, **kwargs):
+    def __init__(self, username, api_key, auth_token=None, *args, **kwargs):
         super(Authentication, self).__init__(*args, **kwargs)
         self.username = username
         self.api_key = api_key
+        self.auth_token = auth_token
+        if self.auth_token:
+            self.authenticated = True
+
+    @property
+    def auth_headers(self):
+        return {'X-Auth-Token': self.auth_token}
 
     def _authenticate(self, response):
         if response.status_code == 401:
@@ -171,7 +178,6 @@ class Authentication(BaseAuthentication):
 
         self.auth_token = response.headers.get('x-auth-token', 'huh?')
         self.storage_url = self.get_storage_url(storage_options)
-        self.auth_headers = {'X-Auth-Token': self.auth_token}
         if not self.storage_url:
             self.storage_url = response.headers['x-storage-url']
             raise errors.StorageURLNotFound("Could not find defined storage URL. Using default.")

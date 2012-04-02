@@ -80,10 +80,13 @@ class Authentication(BaseAuthentication):
     """
         Authentication class.
     """
-    def __init__(self, username, api_key, *args, **kwargs):
+    def __init__(self, username, api_key, auth_token=None, *args, **kwargs):
         super(Authentication, self).__init__(*args, **kwargs)
         self.username = username
         self.api_key = api_key
+        self.auth_token = auth_token
+        if self.auth_token:
+            self.authenticated = True
 
     def authenticate(self):
         """ Does authentication """
