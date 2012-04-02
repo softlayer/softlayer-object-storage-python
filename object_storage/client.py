@@ -177,8 +177,10 @@ class Client(object):
         """
         return self.container(name).load()
 
-    def set_metadata(self, meta):
+    def set_metadata(self, meta, headers={}):
         meta_headers = {}
+        for k, v in headers.iteritems():
+            meta_headers[k] = v
         for k, v in meta.iteritems():
             meta_headers["x-account-meta-{0}".format(k)] = v
         self.make_request('POST', headers=meta_headers)

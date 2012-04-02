@@ -10,29 +10,29 @@ def get_client(*args, **kwargs):
     """ Returns an Object Storage client """
     return get_httplib2_client(*args, **kwargs)
 
-def get_httplib2_client(username, password, auth_url=None, **kwargs):
+def get_httplib2_client(username, password, auth_url=None, auth_token=None, **kwargs):
     """ Returns an Object Storage client (using httplib2) """
     from object_storage.transport.httplib2conn import AuthenticatedConnection, Authentication
 
-    auth = Authentication(username, password, auth_url=auth_url, **kwargs)
+    auth = Authentication(username, password, auth_url=auth_url, auth_token=auth_token, **kwargs)
     conn = AuthenticatedConnection(auth)
     client = Client(username, password, connection=conn)
     return client
 
-def get_requests_client(username, password, auth_url=None, **kwargs):
+def get_requests_client(username, password, auth_url=None, auth_token=None, **kwargs):
     """ Returns an Object Storage client (using Requests) """
     from object_storage.transport.requestsconn import AuthenticatedConnection, Authentication
 
-    auth = Authentication(username, password, auth_url=auth_url, **kwargs)
+    auth = Authentication(username, password, auth_url=auth_url, auth_token=auth_token, **kwargs)
     conn = AuthenticatedConnection(auth)
     client = Client(username, password, connection=conn)
     return client
 
-def get_twisted_client(username, password, auth_url=None, **kwargs):
+def get_twisted_client(username, password, auth_url=None, auth_token=None, **kwargs):
     """ Returns an Object Storage client (using Twisted) """
     from object_storage.transport.twist import AuthenticatedConnection, Authentication
 
-    auth = Authentication(username, password, auth_url=auth_url, **kwargs)
+    auth = Authentication(username, password, auth_url=auth_url, auth_token=auth_token, **kwargs)
     conn = AuthenticatedConnection(auth)
     client = Client(username, password, connection=conn)
     
