@@ -1,0 +1,509 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>object_storage.storage_object &mdash; SoftLayer Object Storage v0.4 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="SoftLayer Object Storage v0.4 documentation" href="../../index.html" />
+    <link rel="up" title="object_storage" href="../object_storage.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../object_storage.html" accesskey="U">object_storage</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for object_storage.storage_object</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    StorageObject module</span>
+
+<span class="sd">    See COPYING for license information</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">mimetypes</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">import</span> <span class="nn">UserDict</span>
+
+<span class="kn">from</span> <span class="nn">object_storage</span> <span class="kn">import</span> <span class="n">errors</span>
+<span class="kn">from</span> <span class="nn">object_storage.utils</span> <span class="kn">import</span> <span class="n">get_path</span>
+
+<span class="k">class</span> <span class="nc">StorageObjectModel</span><span class="p">(</span><span class="n">UserDict</span><span class="o">.</span><span class="n">UserDict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">controller</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">_headers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c"># Lowercase headers</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">_key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">_headers</span><span class="p">[</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">_headers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="bp">None</span>
+        
+        <span class="n">_properties</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;container&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;bytes&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;size&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;content_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content_type&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-type&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;last_modified&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;last_modified&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;last-modified&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;hash&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                              <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;hash&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;manifest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;manifest&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;content_encoding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content_encoding&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                          <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-encoding&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;cache_control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;cache-control&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;cdn_url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-url&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;cdn_ssl_url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-ssl-url&#39;</span><span class="p">)</span>
+
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">url</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;meta_&#39;</span><span class="p">):</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">5</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;x-object-meta-&#39;</span><span class="p">):</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">14</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;meta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">_properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span>
+
+<div class="viewcode-block" id="StorageObject"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject">[docs]</a><span class="k">class</span> <span class="nc">StorageObject</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Representation of a Object Storage object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="mi">1024</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; constructor for StorageObject</span>
+
+<span class="sd">        @param container: container name</span>
+<span class="sd">        @param name: object name</span>
+<span class="sd">        @param headers: init headers to use when initializing the object</span>
+<span class="sd">        @param client: `object_storage.client` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">StorageObjectModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StorageObject.exists"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.exists">[docs]</a>    <span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Tries to load the object to check existance</span>
+
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: boolean, true if exists else false</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">StorageObjectModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;X-Context&#39;</span><span class="p">:</span> <span class="s">&#39;cdn&#39;</span><span class="p">},</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">errors</span><span class="o">.</span><span class="n">NotFound</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="StorageObject.load"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; load data for the object</span>
+
+<span class="sd">        @param cdn: True if you want CDN information; default=True</span>
+<span class="sd">        @return: object_storage.storage_object, self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">cdn</span><span class="p">:</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">&#39;X-Context&#39;</span><span class="p">,</span> <span class="s">&#39;cdn&#39;</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">StorageObjectModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.get_info"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.get_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the properties &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">properties</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="StorageObject.properties"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.properties">[docs]</a>    <span class="k">def</span> <span class="nf">properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the properties &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_info</span><span class="p">()</span></div>
+    <span class="n">props</span> <span class="o">=</span> <span class="n">properties</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="StorageObject.headers"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.headers">[docs]</a>    <span class="k">def</span> <span class="nf">headers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the raw headers for the object &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">headers</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="StorageObject.meta"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.meta">[docs]</a>    <span class="k">def</span> <span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the metadata for the object &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">meta</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="StorageObject.url"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.url">[docs]</a>    <span class="k">def</span> <span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get the URL of the object &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_url</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="StorageObject.path"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.path">[docs]</a>    <span class="k">def</span> <span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get the path of the object &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">get_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="StorageObject.list"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.list">[docs]</a>    <span class="k">def</span> <span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uses sudo-hierarchical structure to list the children objects.</span>
+<span class="sd">        </span>
+<span class="sd">        @param limit: limit of results to return.</span>
+<span class="sd">        @param marker: start listing after this object name</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: list of StorageObject instances</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="s">&#39;json&#39;</span><span class="p">,</span> 
+                  <span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">marker</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="n">items</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span>
+                                             <span class="n">item</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">],</span>
+                                             <span class="n">headers</span><span class="o">=</span><span class="n">item</span><span class="p">)</span>
+                    <span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">objects</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">],</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="StorageObject.is_dir"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.is_dir">[docs]</a>    <span class="k">def</span> <span class="nf">is_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns True if content_type is &#39;text/directory&#39; &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">content_type</span> <span class="o">==</span> <span class="s">&#39;text/directory&#39;</span>
+</div>
+<div class="viewcode-block" id="StorageObject.set_metadata"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.set_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">set_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets metadata for the object</span>
+
+<span class="sd">        @param meta: dict of metadata on the object</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">meta_headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">meta_headers</span><span class="p">[</span><span class="s">&quot;X-Object-Meta-{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">meta_headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.create"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create object</span>
+<span class="sd">        </span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: StorageObject - self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">content_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="ow">or</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">content_type</span><span class="p">:</span>
+            <span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/octet-stream&#39;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;content-type&#39;</span><span class="p">:</span> <span class="n">content_type</span><span class="p">,</span> <span class="s">&#39;Content-Length&#39;</span><span class="p">:</span> <span class="s">&#39;0&#39;</span><span class="p">}</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="StorageObject.delete"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Delete object</span>
+<span class="sd">        </span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delete_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="StorageObject.read"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Reads object content</span>
+<span class="sd">        </span>
+<span class="sd">        @param size: number of bytes to read (0 reads all of the object data)</span>
+<span class="sd">        @param offset: number of bytes to offset the read</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: str, data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">_range</span> <span class="o">=</span> <span class="s">&#39;bytes=</span><span class="si">%d</span><span class="s">-</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="n">size</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_range</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">content</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.save_to_filename"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.save_to_filename">[docs]</a>    <span class="k">def</span> <span class="nf">save_to_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Reads object content into a file</span>
+<span class="sd">        </span>
+<span class="sd">        @param filename: filename</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_download</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">conn</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        </div>
+<div class="viewcode-block" id="StorageObject.chunk_download"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.chunk_download">[docs]</a>    <span class="k">def</span> <span class="nf">chunk_download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an iterator to read the object data.</span>
+<span class="sd">        </span>
+<span class="sd">        @param chunk_size: size of the chunks to read in. </span>
+<span class="sd">            If not defined uses self.chunk_size</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        @return: iterable</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">chunk_size</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">chunk_download</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">)</span></div>
+    <span class="n">iter_content</span> <span class="o">=</span> <span class="n">chunk_download</span>
+    <span class="n">__iter__</span> <span class="o">=</span> <span class="n">chunk_download</span>
+    
+<div class="viewcode-block" id="StorageObject.chunk_upload"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.chunk_upload">[docs]</a>    <span class="k">def</span> <span class="nf">chunk_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a chunkable upload instance.</span>
+<span class="sd">            This is needed for transient data uploads</span>
+<span class="sd">        </span>
+<span class="sd">        @param headers: extra headers to use to initialize the request</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        @return: object that responds to o.send(&#39;data&#39;) to send data </span>
+<span class="sd">            and o.finish() to finish the upload.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chunkable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">chunk_upload</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">chunkable</span>
+        </div>
+<div class="viewcode-block" id="StorageObject.send"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uploads object data</span>
+<span class="sd">        </span>
+<span class="sd">        @param data: either a file-like object or a string.</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        @return: StorageObject, self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">file</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fstat</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">fileno</span><span class="p">())[</span><span class="mi">6</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;__len__&#39;</span><span class="p">):</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">content_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">content_type</span><span class="p">:</span>
+            <span class="n">_type</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">):</span>
+                <span class="n">_type</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">content_type</span> <span class="o">=</span> <span class="n">_type</span> <span class="ow">or</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="s">&#39;application/octet-stream&#39;</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">content_type</span>
+
+        <span class="k">if</span> <span class="n">size</span> <span class="ow">or</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Content-Length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Transfer-Encoding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;chunked&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="bp">self</span><span class="p">)</span></div>
+    <span class="n">write</span> <span class="o">=</span> <span class="n">send</span>
+   
+<div class="viewcode-block" id="StorageObject.upload_directory"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.upload_directory">[docs]</a>    <span class="k">def</span> <span class="nf">upload_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uploads an entire directory</span>
+<span class="sd">        </span>
+<span class="sd">        @param directory: path of the directory to upload</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">directories</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">_dir</span> <span class="ow">in</span> <span class="n">dirnames</span><span class="p">:</span>
+                <span class="n">directories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">_dir</span><span class="p">)))</span>
+            <span class="k">for</span> <span class="n">_file</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">_file</span><span class="p">)))</span>
+                
+        <span class="k">for</span> <span class="n">_dir</span> <span class="ow">in</span> <span class="n">directories</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="n">_dir</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/directory&#39;</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">_file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="n">_file</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">load_from_filename</span><span class="p">(</span><span class="n">_file</span><span class="p">)</span>
+            </div>
+<div class="viewcode-block" id="StorageObject.load_from_filename"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.load_from_filename">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uploads a file from the local filename</span>
+<span class="sd">        </span>
+<span class="sd">        @param filename: path of the directory to upload</span>
+<span class="sd">        @raises: ResponseError, IOError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">upload_directory</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">_file</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">_file</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.copy_from"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.copy_from">[docs]</a>    <span class="k">def</span> <span class="nf">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Copies content from an existing object</span>
+<span class="sd">        </span>
+<span class="sd">        @param old_obj: StorageObject instance to copy data from</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        @return: StorageObject, self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s">&#39;X-Copy-From&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">old_obj</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Content-Length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;0&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.copy_to"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.copy_to">[docs]</a>    <span class="k">def</span> <span class="nf">copy_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Copies content from an existing object</span>
+<span class="sd">        </span>
+<span class="sd">        @param new_obj: StorageObject instance to copy data to</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        @return: StorageObject, new_obj</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Destination&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_obj</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s">&#39;Content-Length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;0&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;COPY&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">new_obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.rename"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.rename">[docs]</a>    <span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Copies content to a new object existing object and deletes the current object</span>
+<span class="sd">        </span>
+<span class="sd">        @param new_obj: StorageObject instance to copy data to</span>
+<span class="sd">        @raises: ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_delete</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">def</span> <span class="nf">_copy_to</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">new_obj</span><span class="o">.</span><span class="n">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_delete</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_obj</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Length&#39;</span><span class="p">:</span> <span class="s">&#39;0&#39;</span><span class="p">},</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_copy_to</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.search"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Search within path &quot;&quot;&quot;</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">options</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)})</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.prime_cdn"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.prime_cdn">[docs]</a>    <span class="k">def</span> <span class="nf">prime_cdn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Prime the object for CDN usage &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;X-Context&#39;</span><span class="p">:</span> <span class="s">&#39;cdn&#39;</span><span class="p">,</span> <span class="s">&#39;X-Cdn-Load&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.purge_cdn"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.purge_cdn">[docs]</a>    <span class="k">def</span> <span class="nf">purge_cdn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Purge the object for CDN usage &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;X-Context&#39;</span><span class="p">:</span> <span class="s">&#39;cdn&#39;</span><span class="p">,</span> <span class="s">&#39;X-Cdn-Purge&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.make_request"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.make_request">[docs]</a>    <span class="k">def</span> <span class="nf">make_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns a request object &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StorageObject.fileno"><a class="viewcode-back" href="../../object.html#object_storage.storage_object.StorageObject.fileno">[docs]</a>    <span class="k">def</span> <span class="nf">fileno</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    </div>
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[</span><span class="s">&#39;size&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="s">&#39;Unknown&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s">&#39;StorageObject({0}, {1}, {2}B)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">),</span> <span class="n">size</span><span class="p">)</span>
+    <span class="n">__repr__</span> <span class="o">=</span> <span class="n">__str__</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../object_storage.html" >object_storage</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012 SoftLayer Technologies, Inc..
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

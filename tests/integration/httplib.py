@@ -94,20 +94,20 @@ class ClientTest(unittest.TestCase):
 
         container = self.client[self.container_name].create()
         time.sleep(2)
-        results = self.client.search({'q': '*test*', 'type': 'container'})
+        results = self.client.search('*test*', type='container')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 1, "Correct amount of search results")
         self.assert_(result_list.pop().name == self.container_name, "Correct search result name")
 
         container.delete()
         time.sleep(2)
-        results = self.client.search({'q': '*test*', 'type': 'container'})
+        results = self.client.search('*test*', type='container')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 0, "Search returns no results")
 
     def test_search_object(self):
         time.sleep(2)
-        results = self.client.search({'q': '*test*'})
+        results = self.client.search('*test*')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 0, "Search returns no results")
 
@@ -117,19 +117,19 @@ class ClientTest(unittest.TestCase):
         obj.create()
         time.sleep(3)
         
-        results = self.client.search({'q': '*test*', 'type': 'object'})
+        results = self.client.search('*test*', type='object')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 1, "Correct amount of search results")
         self.assert_(result_list.pop().name == self.object_name, "Correct search result name")
 
-        results = self.client.search({'q': '*test*', 'type': 'object', 'content_type': 'application/text'})
+        results = self.client.search('*test*', type='object', content_type='application/text')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 1, "Correct amount of search results")
         self.assert_(result_list.pop().name == self.object_name, "Correct search result name")
         
         obj.delete()
         time.sleep(2)
-        results = self.client.search({'q': '*test*', 'type': 'object'})
+        results = self.client.search('*test*', type='object')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 0, "Search returns no results")
         
