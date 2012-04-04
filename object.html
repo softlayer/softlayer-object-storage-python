@@ -1,0 +1,359 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>StorageObject &mdash; SoftLayer Object Storage v0.4 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SoftLayer Object Storage v0.4 documentation" href="index.html" />
+    <link rel="prev" title="Container" href="container.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="container.html" title="Container"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="storageobject">
+<h1>StorageObject<a class="headerlink" href="#storageobject" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="object_storage.storage_object.StorageObject">
+<em class="property">class </em><tt class="descclassname">object_storage.storage_object.</tt><tt class="descname">StorageObject</tt><big>(</big><em>container</em>, <em>name</em>, <em>headers=None</em>, <em>client=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Representation of a Object Storage object.</p>
+<p>constructor for StorageObject</p>
+<p>&#64;param container: container name
+&#64;param name: object name
+&#64;param headers: init headers to use when initializing the object
+&#64;param client: <cite>object_storage.client</cite> instance.</p>
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.exists">
+<tt class="descname">exists</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to load the object to check existance</p>
+<p>&#64;raises ResponseError
+&#64;return: boolean, true if exists else false</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.load">
+<tt class="descname">load</tt><big>(</big><em>cdn=True</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>load data for the object</p>
+<p>&#64;param cdn: True if you want CDN information; default=True
+&#64;return: object_storage.storage_object, self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.get_info">
+<tt class="descname">get_info</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.get_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.properties">
+<tt class="descname">properties</tt><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.props">
+<tt class="descname">props</tt><a class="headerlink" href="#object_storage.storage_object.StorageObject.props" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.headers">
+<tt class="descname">headers</tt><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.headers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.headers" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the raw headers for the object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.meta">
+<tt class="descname">meta</tt><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the metadata for the object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.url">
+<tt class="descname">url</tt><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the URL of the object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.storage_object.StorageObject.path">
+<tt class="descname">path</tt><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the path of the object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.list">
+<tt class="descname">list</tt><big>(</big><em>limit=None</em>, <em>marker=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sudo-hierarchical structure to list the children objects.</p>
+<p>&#64;param limit: limit of results to return.
+&#64;param marker: start listing after this object name
+&#64;raises ResponseError
+&#64;return: list of StorageObject instances</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.is_dir">
+<tt class="descname">is_dir</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.is_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.is_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns True if content_type is &#8216;text/directory&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.set_metadata">
+<tt class="descname">set_metadata</tt><big>(</big><em>meta</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.set_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.set_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets metadata for the object</p>
+<p>&#64;param meta: dict of metadata on the object
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.create">
+<tt class="descname">create</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create object</p>
+<p>&#64;raises ResponseError
+&#64;return: StorageObject - self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.delete">
+<tt class="descname">delete</tt><big>(</big><em>recursive=False</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete object</p>
+<p>&#64;raises ResponseError
+&#64;return: True</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.read">
+<tt class="descname">read</tt><big>(</big><em>size=0</em>, <em>offset=0</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads object content</p>
+<p>&#64;param size: number of bytes to read (0 reads all of the object data)
+&#64;param offset: number of bytes to offset the read
+&#64;raises ResponseError
+&#64;return: str, data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.save_to_filename">
+<tt class="descname">save_to_filename</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.save_to_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.save_to_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads object content into a file</p>
+<p>&#64;param filename: filename
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.chunk_download">
+<tt class="descname">chunk_download</tt><big>(</big><em>chunk_size=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.chunk_download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.chunk_download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterator to read the object data.</p>
+<dl class="docutils">
+<dt>&#64;param chunk_size: size of the chunks to read in. </dt>
+<dd>If not defined uses self.chunk_size</dd>
+</dl>
+<p>&#64;raises: ResponseError
+&#64;return: iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.iter_content">
+<tt class="descname">iter_content</tt><big>(</big><em>chunk_size=None</em><big>)</big><a class="headerlink" href="#object_storage.storage_object.StorageObject.iter_content" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterator to read the object data.</p>
+<dl class="docutils">
+<dt>&#64;param chunk_size: size of the chunks to read in. </dt>
+<dd>If not defined uses self.chunk_size</dd>
+</dl>
+<p>&#64;raises: ResponseError
+&#64;return: iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.chunk_upload">
+<tt class="descname">chunk_upload</tt><big>(</big><em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.chunk_upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.chunk_upload" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns a chunkable upload instance.</dt>
+<dd>This is needed for transient data uploads</dd>
+</dl>
+<p>&#64;param headers: extra headers to use to initialize the request
+&#64;raises: ResponseError
+&#64;return: object that responds to o.send(&#8216;data&#8217;) to send data</p>
+<blockquote>
+and o.finish() to finish the upload.</blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.send">
+<tt class="descname">send</tt><big>(</big><em>data</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads object data</p>
+<p>&#64;param data: either a file-like object or a string.
+&#64;raises: ResponseError
+&#64;return: StorageObject, self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.write">
+<tt class="descname">write</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#object_storage.storage_object.StorageObject.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads object data</p>
+<p>&#64;param data: either a file-like object or a string.
+&#64;raises: ResponseError
+&#64;return: StorageObject, self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.upload_directory">
+<tt class="descname">upload_directory</tt><big>(</big><em>directory</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.upload_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.upload_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads an entire directory</p>
+<p>&#64;param directory: path of the directory to upload
+&#64;raises: ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.load_from_filename">
+<tt class="descname">load_from_filename</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.load_from_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.load_from_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads a file from the local filename</p>
+<p>&#64;param filename: path of the directory to upload
+&#64;raises: ResponseError, IOError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.copy_from">
+<tt class="descname">copy_from</tt><big>(</big><em>old_obj</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.copy_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.copy_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies content from an existing object</p>
+<p>&#64;param old_obj: StorageObject instance to copy data from
+&#64;raises: ResponseError
+&#64;return: StorageObject, self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.copy_to">
+<tt class="descname">copy_to</tt><big>(</big><em>new_obj</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.copy_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.copy_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies content from an existing object</p>
+<p>&#64;param new_obj: StorageObject instance to copy data to
+&#64;raises: ResponseError
+&#64;return: StorageObject, new_obj</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.rename">
+<tt class="descname">rename</tt><big>(</big><em>new_obj</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.rename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.rename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies content to a new object existing object and deletes the current object</p>
+<p>&#64;param new_obj: StorageObject instance to copy data to
+&#64;raises: ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.search">
+<tt class="descname">search</tt><big>(</big><em>q</em>, <em>options=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Search within path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.prime_cdn">
+<tt class="descname">prime_cdn</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.prime_cdn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.prime_cdn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prime the object for CDN usage</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.purge_cdn">
+<tt class="descname">purge_cdn</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.purge_cdn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.purge_cdn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Purge the object for CDN usage</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.make_request">
+<tt class="descname">make_request</tt><big>(</big><em>method</em>, <em>path=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.make_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.make_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a request object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.storage_object.StorageObject.fileno">
+<tt class="descname">fileno</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/storage_object.html#StorageObject.fileno"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.storage_object.StorageObject.fileno" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="container.html"
+                        title="previous chapter">Container</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/object.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="container.html" title="Container"
+             >previous</a> |</li>
+        <li><a href="index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012 SoftLayer Technologies, Inc..
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>
