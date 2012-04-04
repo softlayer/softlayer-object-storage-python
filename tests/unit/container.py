@@ -46,9 +46,8 @@ class ContainerTest(unittest.TestCase):
         pass
 
     def test_search(self, *args, **kwargs):
-        options = {'q': 'query'}
-        self.container.search(options)
-        self.client.search.called_once_with({'q': 'query', 'path': self.container.name})
+        self.container.search('query')
+        self.client.search.called_once_with('query', {'path': self.container.name})
 
     def test_get_object(self):
         _name = Mock()

@@ -58,16 +58,16 @@ sl_storage['foo'].delete()
 Search Usage
 ------------
 ```python
-sl_storage.search({'q': 'foo'})
+sl_storage.search('foo')
 # {'count': 2, 'total': 2, 'results': [Container(foo), StorageObject(bar, foo)]}
 
-sl_storage['foo'].search({'q': 'bar.txt'})
+sl_storage['foo'].search('bar.txt')
 # {'count': 1, 'total': 1, 'results': [StorageObject(foo, bar.txt)]}
 
-sl_storage.search({'q': 'foo', 'type': 'container'})
+sl_storage.search('foo', type='container')
 # {'count': 1, 'total': 1, 'results': [Container(foo)]}
 
-sl_storage.search({'q': 'foo*baz'})
+sl_storage.search('foo*baz')
 # {'count': 1, 'total': 1, 'results': [Container(foobarbaz)]}
 ```
 
