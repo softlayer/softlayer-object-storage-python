@@ -64,6 +64,13 @@ class StorageObject:
     """
     chunk_size=10*1024
     def __init__(self, container, name, headers=None, client=None):
+        """ constructor for StorageObject
+
+        @param container: container name
+        @param name: object name
+        @param headers: init headers to use when initializing the object
+        @param client: `object_storage.client` instance.
+        """
         self.container = container
         self.name = name
         self.client = client
@@ -73,6 +80,11 @@ class StorageObject:
             self.model = StorageObjectModel(self, self.container, self.name, headers)
 
     def exists(self):
+        """ Tries to load the object to check existance
+
+        @raises ResponseError
+        @return: boolean, true if exists else false
+        """
         def _formatter(res):
             self.model = StorageObjectModel(self, self.container, self.name, res.headers)
             return True
@@ -82,6 +94,11 @@ class StorageObject:
             return False
 
     def load(self, cdn=True):
+        """ load data for the object
+
+        @param cdn: True if you want CDN information; default=True
+        @return: object_storage.storage_object, self
+        """
         headers = {}
         if cdn:
             headers.setdefault('X-Context', 'cdn')
@@ -91,23 +108,27 @@ class StorageObject:
         return self.make_request('HEAD', headers=headers, formatter=_formatter)
 
     def get_info(self):
+        """ loads data if not already available and returns the properties """
         if not self.model:
             self.load()
         return self.model.properties
 
     @property
     def properties(self):
+        """ loads data if not already available and returns the properties """
         return self.get_info()
     props = properties
 
     @property
     def headers(self):
+        """ loads data if not already available and returns the raw headers for the object """
         if not self.model:
             self.load()
         return self.model.headers
 
     @property
     def meta(self):
+        """ loads data if not already available and returns the metadata for the object """
         if not self.model:
             self.load()
         return self.model.meta
@@ -125,10 +146,12 @@ class StorageObject:
         return get_path(path)
     
     def list(self, limit=None, marker=None):
-        """ Get list
-            Uses sudo-hierarchical structure to list the children objects.
-
-            return list(object, object, ...)
+        """ Uses sudo-hierarchical structure to list the children objects.
+        
+        @param limit: limit of results to return.
+        @param marker: start listing after this object name
+        @raises ResponseError
+        @return: list of StorageObject instances
         """
         params = {'format': 'json', 
                   'path': self.name}
@@ -153,13 +176,22 @@ class StorageObject:
         return self.model.content_type == 'text/directory'
 
     def set_metadata(self, meta):
+        """ Sets metadata for the object
+
+        @param meta: dict of metadata on the object
+        @raises ResponseError
+        """
         meta_headers = {}
         for k, v in meta.iteritems():
             meta_headers["X-Object-Meta-{0}".format(k)] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
-        """ Creates the object. This WILL overrite the current data if any. """
+        """ Create object
+        
+        @raises ResponseError
+        @return: StorageObject - self
+        """
         content_type = self.content_type or mimetypes.guess_type(self.name)[0]
         if not content_type:
             content_type = 'application/octet-stream'
@@ -169,11 +201,21 @@ class StorageObject:
         return self.make_request('PUT', headers=headers, formatter=_formatter)
         
     def delete(self, recursive=False):
-        """ Deletes the object """
+        """ Delete object
+        
+        @raises ResponseError
+        @return: True
+        """
         return self.client.delete_object(self.container, self.name)
         
     def read(self, size=0, offset=0):
-        """ Reads object content """
+        """ Reads object content
+        
+        @param size: number of bytes to read (0 reads all of the object data)
+        @param offset: number of bytes to offset the read
+        @raises ResponseError
+        @return: str, data
+        """
         headers = {}
         if size > 0:
             _range = 'bytes=%d-%d' % (offset, (offset + size) - 1)
@@ -183,29 +225,51 @@ class StorageObject:
         return self.make_request('GET', headers=headers, formatter=_formatter)
 
     def save_to_filename(self, filename):
-       f = open(filename, 'wb')
-       conn = self.chunk_download()
-       try:
-           for data in conn:
-               f.write(data)
-       finally:
-           f.close()
+        """ Reads object content into a file
+        
+        @param filename: filename
+        @raises ResponseError
+        """
+        f = open(filename, 'wb')
+        conn = self.chunk_download()
+        try:
+            for data in conn:
+                f.write(data)
+        finally:
+            f.close()
         
     def chunk_download(self, chunk_size=None):
-        """ Returns an iterator to read the object data. """
+        """ Returns an iterator to read the object data.
+        
+        @param chunk_size: size of the chunks to read in. 
+            If not defined uses self.chunk_size
+        @raises: ResponseError
+        @return: iterable
+        """
         chunk_size = chunk_size or self.chunk_size
         return self.client.chunk_download([self.container, self.name], chunk_size=chunk_size)
     iter_content = chunk_download
     __iter__ = chunk_download
     
     def chunk_upload(self, headers=None):
-        """ Returns a 'chunkable' connection. This is used for chunked 
-            uploading of files. This is needed for transient data uploads """
+        """ Returns a chunkable upload instance.
+            This is needed for transient data uploads
+        
+        @param headers: extra headers to use to initialize the request
+        @raises: ResponseError
+        @return: object that responds to o.send('data') to send data 
+            and o.finish() to finish the upload.
+        """
         chunkable = self.client.chunk_upload([self.container, self.name], headers=headers)
         return chunkable
         
     def send(self, data):
-        """ Sends data for an object. Takes a string or an open file object. """
+        """ Uploads object data
+        
+        @param data: either a file-like object or a string.
+        @raises: ResponseError
+        @return: StorageObject, self
+        """
         size = None
         if isinstance(data, file):
             try:
@@ -235,7 +299,11 @@ class StorageObject:
     write = send
    
     def upload_directory(self, directory):
-        """ Uploads an entire local directory. """
+        """ Uploads an entire directory
+        
+        @param directory: path of the directory to upload
+        @raises: ResponseError
+        """
         directories = []
         files = []
         for root, dirnames, filenames in os.walk(directory):
@@ -254,8 +322,11 @@ class StorageObject:
             obj.load_from_filename(_file)
             
     def load_from_filename(self, filename):
-        """ Uploads data for an object using the file contents of the file 
-            corresponding to the given filename"""
+        """ Uploads a file from the local filename
+        
+        @param filename: path of the directory to upload
+        @raises: ResponseError, IOError
+        """
         if os.path.isdir(filename):
             self.upload_directory(filename)
         else:
@@ -263,36 +334,54 @@ class StorageObject:
                 return self.send(_file)
 
     def copy_from(self, old_obj, *args, **kwargs):
+        """ Copies content from an existing object
+        
+        @param old_obj: StorageObject instance to copy data from
+        @raises: ResponseError
+        @return: StorageObject, self
+        """
         headers = {}
         headers['X-Copy-From'] = old_obj.path
         headers['Content-Length'] = "0"
-        return self.make_request('PUT', headers=headers, *args, **kwargs)
+        return self.make_request('PUT', headers=headers, *args, formatter=lambda r: self, **kwargs)
 
     def copy_to(self, new_obj, *args, **kwargs):
-        """ Issues a copy-to command """
+        """ Copies content from an existing object
+        
+        @param new_obj: StorageObject instance to copy data to
+        @raises: ResponseError
+        @return: StorageObject, new_obj
+        """
         headers = {}
         headers['Destination'] = new_obj.path
         headers['Content-Length'] = "0"
-        return self.make_request('COPY', headers=headers, *args, **kwargs)
+        return self.make_request('COPY', headers=headers, *args, formatter=lambda r: new_obj, **kwargs)
 
     def rename(self, new_obj, *args, **kwargs):
-        """ Copies one object to a new name and deletes the old version """
+        """ Copies content to a new object existing object and deletes the current object
+        
+        @param new_obj: StorageObject instance to copy data to
+        @raises: ResponseError
+        """
         def _delete(res):
             return self.delete()
         def _copy_to(res):
             return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
         return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
-    def search(self, options={}):
+    def search(self, q, options=None, **kwargs):
         """ Search within path """
+        options = options or {}
         options.update({'path': "%s/%s" % (self.container, self.name)})
-        return self.client.search(options)
+        return self.client.search(q, options=options, **kwargs)
 
     def prime_cdn(self):
+        """ Prime the object for CDN usage """
         headers = {'X-Context': 'cdn', 'X-Cdn-Load': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 
     def purge_cdn(self):
+        """ Purge the object for CDN usage """
         headers = {'X-Context': 'cdn', 'X-Cdn-Purge': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 

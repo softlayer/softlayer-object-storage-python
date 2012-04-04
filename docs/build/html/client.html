@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Client &mdash; SoftLayer Object Storage v0.4 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SoftLayer Object Storage v0.4 documentation" href="index.html" />
+    <link rel="next" title="Container" href="container.html" />
+    <link rel="prev" title="SoftLayer Object Storage (Python binding)" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="container.html" title="Container"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SoftLayer Object Storage (Python binding)"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-object_storage">
+<span id="client"></span><h1>Client<a class="headerlink" href="#module-object_storage" title="Permalink to this headline">¶</a></h1>
+<p>SoftLayer Object Storage python client.</p>
+<p>See COPYING for license information</p>
+<dl class="function">
+<dt id="object_storage.get_client">
+<tt class="descclassname">object_storage.</tt><tt class="descname">get_client</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage.html#get_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.get_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an Object Storage client (using httplib2)</p>
+<p>&#64;param username: username for Object Storage
+&#64;param password: password or api key for Object Storage
+&#64;param auth_url: Auth URL for Object Storage
+&#64;param auth_token: If provided, bypasses authentication and uses the given auth_token
+&#64;return: <cite>object_storage.client.Client</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="object_storage.get_httplib2_client">
+<tt class="descclassname">object_storage.</tt><tt class="descname">get_httplib2_client</tt><big>(</big><em>username</em>, <em>password</em>, <em>auth_url=None</em>, <em>auth_token=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage.html#get_httplib2_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.get_httplib2_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an Object Storage client (using httplib2)</p>
+<p>&#64;param username: username for Object Storage
+&#64;param password: password or api key for Object Storage
+&#64;param auth_url: Auth URL for Object Storage
+&#64;param auth_token: If provided, bypasses authentication and uses the given auth_token
+&#64;return: <cite>object_storage.client.Client</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="object_storage.get_requests_client">
+<tt class="descclassname">object_storage.</tt><tt class="descname">get_requests_client</tt><big>(</big><em>username</em>, <em>password</em>, <em>auth_url=None</em>, <em>auth_token=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage.html#get_requests_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.get_requests_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an Object Storage client (using Requests)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="object_storage.get_twisted_client">
+<tt class="descclassname">object_storage.</tt><tt class="descname">get_twisted_client</tt><big>(</big><em>username</em>, <em>password</em>, <em>auth_url=None</em>, <em>auth_token=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage.html#get_twisted_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.get_twisted_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an Object Storage client (using Twisted)</p>
+</dd></dl>
+
+<hr class="docutils" />
+<dl class="class">
+<dt id="object_storage.client.Client">
+<em class="property">class </em><tt class="descclassname">object_storage.client.</tt><tt class="descname">Client</tt><big>(</big><em>username=None</em>, <em>api_key=None</em>, <em>connection=None</em>, <em>delimiter='/'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Client class. Primary interface for the client.</p>
+<p>constructor for Client object</p>
+<p>&#64;param username: the username
+&#64;param api_key: api_key for Object Storage
+&#64;param connection: <cite>object_storage.transport.AuthenticatedConnection</cite></p>
+<blockquote>
+instance.</blockquote>
+<dl class="docutils">
+<dt>&#64;param delimiter: the symbol to use to divid up hiearchical divisions </dt>
+<dd>for objects.</dd>
+</dl>
+<p>&#64;param container_class: factory or class for Container constructing
+&#64;param object_class: factory or class for StorageObject constructing</p>
+<dl class="method">
+<dt id="object_storage.client.Client.load">
+<tt class="descname">load</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>load data for the account</p>
+<p>&#64;return: object_storage.client, self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.get_info">
+<tt class="descname">get_info</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.get_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.properties">
+<tt class="descname">properties</tt><a class="reference internal" href="_modules/object_storage/client.html#Client.properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.props">
+<tt class="descname">props</tt><a class="headerlink" href="#object_storage.client.Client.props" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the properties</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.headers">
+<tt class="descname">headers</tt><a class="reference internal" href="_modules/object_storage/client.html#Client.headers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.headers" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the raw headers for the account</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.meta">
+<tt class="descname">meta</tt><a class="reference internal" href="_modules/object_storage/client.html#Client.meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads data if not already available and returns the metadata for the account</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.path">
+<tt class="descname">path</tt><a class="reference internal" href="_modules/object_storage/client.html#Client.path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the file-path. Always returns an empty string.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="object_storage.client.Client.url">
+<tt class="descname">url</tt><a class="reference internal" href="_modules/object_storage/client.html#Client.url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url of the resource.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.is_dir">
+<tt class="descname">is_dir</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.is_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.is_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether or not this is a directory. Always True.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.search">
+<tt class="descname">search</tt><big>(</big><em>q</em>, <em>options=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access the search interface. 
+&#64;param q: the search query. This can be None.
+&#64;param options: options for the search API. Valid options:</p>
+<blockquote>
+<p>q.[fieldname] -&gt; define search query for a specific field.
+field         -&gt; field name (when using q)
+type          -&gt; &#8216;object&#8217; or &#8216;container&#8217;; default shows both.
+recursive     -&gt; whether to search recursively or to limit to</p>
+<blockquote>
+one level; default=true</blockquote>
+</blockquote>
+<dl class="docutils">
+<dt>&#64;param <a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs: to be merged into the options param. </dt>
+<dd>Provides a nicer interface for the same thing.</dd>
+<dt>More information on options:</dt>
+<dd><a class="reference external" href="http://sldn.softlayer.com/article/API-Operations-Search-Services">http://sldn.softlayer.com/article/API-Operations-Search-Services</a></dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.set_delimiter">
+<tt class="descname">set_delimiter</tt><big>(</big><em>delimiter</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.set_delimiter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.set_delimiter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the delimiter for pseudo hierarchical directory structure. 
+&#64;param delimiter: delimiter to use</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.set_storage_url">
+<tt class="descname">set_storage_url</tt><big>(</big><em>url</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.set_storage_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.set_storage_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the storage URL. After authentication, the URL is automatically 
+populated, but the default value can be overwritten.</p>
+<p>&#64;param url: url to use to call the Object Storage API.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.container">
+<tt class="descname">container</tt><big>(</big><em>name</em>, <em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes container object.</p>
+<p>&#64;param name: name of the container
+&#64;param headers: initial headers to use to initialize the object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.get_container">
+<tt class="descname">get_container</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.get_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.get_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a container object and calls load() on it. 
+&#64;param name: container name
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.set_metadata">
+<tt class="descname">set_metadata</tt><big>(</big><em>meta</em>, <em>headers={}</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.set_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.set_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets metadata for the account</p>
+<p>&#64;param meta: dict of metadata on the account
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.create_container">
+<tt class="descname">create_container</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.create_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.create_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new container</p>
+<p>&#64;param name: container name
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.delete_container">
+<tt class="descname">delete_container</tt><big>(</big><em>name</em>, <em>recursive=False</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.delete_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.delete_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes a container.</p>
+<p>&#64;param name: container name
+&#64;raises ResponseError
+&#64;raises ContainerNotEmpty if container is not empty</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.containers">
+<tt class="descname">containers</tt><big>(</big><em>marker=None</em>, <em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.containers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.containers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists containers</p>
+<p>&#64;param marker: start listing after this container name
+&#64;param headers: extra headers to use when making the listing call
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.public_containers">
+<tt class="descname">public_containers</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.public_containers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.public_containers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists public containers. Same interface as self.containers()</p>
+<p>&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.storage_object">
+<tt class="descname">storage_object</tt><big>(</big><em>container</em>, <em>name</em>, <em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.storage_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.storage_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a StorageObject instance</p>
+<p>&#64;param container: container name
+&#64;param name: object name
+&#64;param headers: initial headers to use to initialize the object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.get_object">
+<tt class="descname">get_object</tt><big>(</big><em>container</em>, <em>name</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.get_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.get_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load an object from swift</p>
+<p>&#64;param container: container name
+&#64;param name: object name
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.delete_object">
+<tt class="descname">delete_object</tt><big>(</big><em>container</em>, <em>name</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.delete_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.delete_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete an object from swift</p>
+<p>&#64;param container: container name
+&#64;param name: object name
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.get_url">
+<tt class="descname">get_url</tt><big>(</big><em>path=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.get_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.get_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url of the resource</p>
+<p>&#64;param path: path to append to the end of the URL</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.make_request">
+<tt class="descname">make_request</tt><big>(</big><em>method</em>, <em>path=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.make_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.make_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make an HTTP request</p>
+<p>&#64;param method: HTTP method (GET, HEAD, POST, PUT, ...)
+&#64;param path: path
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.chunk_download">
+<tt class="descname">chunk_download</tt><big>(</big><em>path</em>, <em>chunk_size=10240</em>, <em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.chunk_download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.chunk_download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a chunk download generator</p>
+<p>&#64;param path: path
+&#64;param chunk_size: the max size in bytes to return on each yield
+&#64;param headers: extra headers to use with this request
+&#64;raises ResponseError</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="object_storage.client.Client.chunk_upload">
+<tt class="descname">chunk_upload</tt><big>(</big><em>path</em>, <em>headers=None</em><big>)</big><a class="reference internal" href="_modules/object_storage/client.html#Client.chunk_upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#object_storage.client.Client.chunk_upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a chunkable connection object at the given path</p>
+<p>&#64;param path: path
+&#64;param headers: extra headers to use with this request
+&#64;raises ResponseError</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">SoftLayer Object Storage (Python binding)</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="container.html"
+                        title="next chapter">Container</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/client.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="container.html" title="Container"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SoftLayer Object Storage (Python binding)"
+             >previous</a> |</li>
+        <li><a href="index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012 SoftLayer Technologies, Inc..
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

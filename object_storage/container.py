@@ -57,6 +57,12 @@ class ContainerModel(UserDict.UserDict):
 class Container:
     """ Container class. Encapsulates Storage containers. """
     def __init__(self, name, headers=None, client=None): 
+        """ constructor for Container
+
+        @param name: container name
+        @param headers: init headers to use when initializing the container
+        @param client: `object_storage.client` instance.
+        """
         self.name = name
         self.client = client
         self.model = None
@@ -64,6 +70,11 @@ class Container:
             self.model = ContainerModel(self, self.name, headers)
 
     def exists(self):
+        """ Tries to load the container to check existance
+
+        @raises ResponseError
+        @return: boolean, true if exists else false
+        """
         def _formatter(res):
             self.model = ContainerModel(self, self.name, res.headers)
             return True
@@ -73,6 +84,11 @@ class Container:
             return False
 
     def load(self, cdn=True):
+        """ load data for the container
+
+        @param cdn: True if you want CDN information; default=True
+        @return: object_storage.container, self
+        """
         headers = {}
         if cdn:
             headers.setdefault('X-Context', 'cdn')
@@ -82,23 +98,27 @@ class Container:
         return self.make_request('HEAD', headers=headers, formatter=_formatter)
 
     def get_info(self):
+        """ loads data if not already available and returns the properties """
         if not self.model:
             self.load()
         return self.model.properties
 
     @property
     def properties(self):
+        """ loads data if not already available and returns the properties """
         return self.get_info()
     props = properties
 
     @property
     def headers(self):
+        """ loads data if not already available and returns the raw headers for the container """
         if not self.model:
             self.load()
         return self.model.headers
 
     @property
     def meta(self):
+        """ loads data if not already available and returns the metadata for the container """
         if not self.model:
             self.load()
         return self.model.meta
@@ -120,41 +140,76 @@ class Container:
         return True
 
     def set_metadata(self, meta):
+        """ Sets metadata for the container
+
+        @param meta: dict of metadata on the container
+        @raises ResponseError
+        """
         meta_headers = {}
         for k, v in meta.iteritems():
             meta_headers["x-container-meta-{0}".format(k)] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
-        """ Creates container """
+        """ Create container
+        
+        @raises ResponseError
+        @return: Containert - self
+        """
         def _formatter(res):
             return self
         return self.make_request('PUT', formatter=_formatter, headers={'Content-Length': '0'})
 
     def delete(self, recursive=False):
-        """ Delete container """
+        """ Delete container
+        
+        @param recursive: true if you want to delete all of the 
+            objects in the container as well.
+        @raises ResponseError
+        @return: True
+        """
         return self.client.delete_container(self.name, recursive=recursive)
         
     def delete_all_objects(self):
-        """ Delete all objects in container """
+        """ Deletes all objects in the container
+        
+        @raises ResponseError
+        """
         resps = []
         for item in self.list():
             resps.append(item.delete())
         return resps
         
     def delete_object(self, obj):
-        """ Delete object in the container """
+        """ Deletes an object in the container
+        
+        @param obj: object name to delete
+        @raises ResponseError
+        """
         if isinstance(obj, StorageObject):
             obj = obj.name
         return self.client.delete_object(self.name, obj)
 
     def rename(self, new_container):
-        """ Rename container. Will not work if container is not empty. """
+        """ Rename container. Will not work if container is not empty.
+        
+        @param new_container: new container name
+        @raises ResponseError
+        """
         self.delete()
         new_container.create()
 
     def objects(self, limit=None, marker=None, base_only=False, headers=None):
-        """ Lists objects in the container.  """
+        """ Lists objects in the container.
+        
+        @param limit: limit of results to return.
+        @param marker: start listing after this object name
+        @param base_only: only return the base objects. 
+            container/object not container/dir/object
+        @param headers: extra headers to use in the request
+        @raises ResponseError
+        @return: list of StorageObject instances
+        """
         params = {'format': 'json'}
         if base_only:
             params['delimiter'] = '/'
@@ -174,33 +229,58 @@ class Container:
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
 
     def set_ttl(self, ttl):
+        """ Set time to live for CDN
+        
+        @param ttl: time in seconds to set as the TTL
+        @raises ResponseError
+        """
         if not ttl:
             ttl = ' '
         headers = {'x-cdn-ttl': str(ttl)}
         return self.make_request('POST', headers=headers)
 
     def set_read_acl(self, acl):
+        """ Set read ACL
+        
+        @param acl: ACL to set for the container
+        @raises ResponseError
+        """
         headers = {'x-container-read': acl}
         return self.make_request('POST', headers=headers)
         
     def set_write_acl(self, acl):
+        """ Set write ACL
+        
+        @param acl: ACL to set for the container
+        @raises ResponseError
+        """
         headers = {'x-container-write': acl}
         return self.make_request('POST', headers=headers)
 
     def make_public(self, ttl=1440):
+        """ Make container public
+        
+        @param ttl: time in seconds to set as the TTL
+        @raises ResponseError
+        """
         headers = {'x-container-read': '.r:*', 'x-cdn-ttl': str(ttl)}
         return self.make_request('POST', headers=headers)
     enable_cdn = make_public
 
     def make_private(self):
+        """ Make container private (empty ACL)
+        
+        @raises ResponseError
+        """
         headers = {'x-container-read': ' '}
         return self.make_request('POST', headers=headers)
     disable_cdn = make_private
 
-    def search(self, options={}):
+    def search(self, q, options=None, **kwargs):
         """ Search within container. """
+        options = options or {}
         options.update({'path': self.name})
-        return self.client.search(options)
+        return self.client.search(q, options=options, **kwargs)
 
     def get_object(self, name):
         """ Calls get_object() on the client. """

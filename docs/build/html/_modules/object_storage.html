@@ -1,0 +1,145 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>object_storage &mdash; SoftLayer Object Storage v0.4 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="SoftLayer Object Storage v0.4 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for object_storage</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SoftLayer Object Storage python client.</span>
+<span class="sd">       </span>
+<span class="sd">    See COPYING for license information</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">object_storage.client</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="kn">from</span> <span class="nn">object_storage.consts</span> <span class="kn">import</span> <span class="n">__version__</span>
+
+<div class="viewcode-block" id="get_client"><a class="viewcode-back" href="../client.html#object_storage.get_client">[docs]</a><span class="k">def</span> <span class="nf">get_client</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns an Object Storage client (using httplib2)</span>
+
+<span class="sd">    @param username: username for Object Storage</span>
+<span class="sd">    @param password: password or api key for Object Storage</span>
+<span class="sd">    @param auth_url: Auth URL for Object Storage</span>
+<span class="sd">    @param auth_token: If provided, bypasses authentication and uses the given auth_token</span>
+<span class="sd">    @return: `object_storage.client.Client` </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_httplib2_client</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="get_httplib2_client"><a class="viewcode-back" href="../client.html#object_storage.get_httplib2_client">[docs]</a><span class="k">def</span> <span class="nf">get_httplib2_client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns an Object Storage client (using httplib2)</span>
+
+<span class="sd">    @param username: username for Object Storage</span>
+<span class="sd">    @param password: password or api key for Object Storage</span>
+<span class="sd">    @param auth_url: Auth URL for Object Storage</span>
+<span class="sd">    @param auth_token: If provided, bypasses authentication and uses the given auth_token</span>
+<span class="sd">    @return: `object_storage.client.Client` </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">object_storage.transport.httplib2conn</span> <span class="kn">import</span> <span class="n">AuthenticatedConnection</span><span class="p">,</span> <span class="n">Authentication</span>
+
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">Authentication</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="n">auth_token</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">AuthenticatedConnection</span><span class="p">(</span><span class="n">auth</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">connection</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">client</span>
+</div>
+<div class="viewcode-block" id="get_requests_client"><a class="viewcode-back" href="../client.html#object_storage.get_requests_client">[docs]</a><span class="k">def</span> <span class="nf">get_requests_client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns an Object Storage client (using Requests) &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">object_storage.transport.requestsconn</span> <span class="kn">import</span> <span class="n">AuthenticatedConnection</span><span class="p">,</span> <span class="n">Authentication</span>
+
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">Authentication</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="n">auth_token</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">AuthenticatedConnection</span><span class="p">(</span><span class="n">auth</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">connection</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">client</span>
+</div>
+<div class="viewcode-block" id="get_twisted_client"><a class="viewcode-back" href="../client.html#object_storage.get_twisted_client">[docs]</a><span class="k">def</span> <span class="nf">get_twisted_client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns an Object Storage client (using Twisted) &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">object_storage.transport.twist</span> <span class="kn">import</span> <span class="n">AuthenticatedConnection</span><span class="p">,</span> <span class="n">Authentication</span>
+
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">Authentication</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="n">auth_token</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">AuthenticatedConnection</span><span class="p">(</span><span class="n">auth</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">connection</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+    
+    <span class="n">d</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">authenticate</span><span class="p">()</span><span class="o">.</span><span class="n">addCallback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">client</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012 SoftLayer Technologies, Inc..
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

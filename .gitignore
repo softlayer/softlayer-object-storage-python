@@ -1,6 +1,5 @@
 *.swp
 *.pyc
-build
 dist
 *.log
 *.egg-info

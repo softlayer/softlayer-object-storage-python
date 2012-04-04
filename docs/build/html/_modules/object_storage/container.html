@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>object_storage.container &mdash; SoftLayer Object Storage v0.4 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="SoftLayer Object Storage v0.4 documentation" href="../../index.html" />
+    <link rel="up" title="object_storage" href="../object_storage.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../object_storage.html" accesskey="U">object_storage</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for object_storage.container</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container module</span>
+
+<span class="sd">    See COPYING for license information</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">UserDict</span>
+<span class="kn">from</span> <span class="nn">object_storage</span> <span class="kn">import</span> <span class="n">errors</span>
+<span class="kn">from</span> <span class="nn">object_storage.storage_object</span> <span class="kn">import</span> <span class="n">StorageObject</span>
+<span class="kn">from</span> <span class="nn">object_storage.utils</span> <span class="kn">import</span> <span class="n">get_path</span>
+
+<span class="k">class</span> <span class="nc">ContainerModel</span><span class="p">(</span><span class="n">UserDict</span><span class="o">.</span><span class="n">UserDict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">controller</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">_headers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c"># Lowercase headers</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">_key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">_headers</span><span class="p">[</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">_headers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">_properties</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-container-object-count&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;count&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;object_count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;count&#39;</span><span class="p">]</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-container-bytes-used&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;size&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;read&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-container-read&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                              <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;read&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;write&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-container-read&#39;</span><span class="p">)</span> <span class="ow">or</span>\
+                               <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;read&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;ttl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-ttl&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;cdn_url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-url&#39;</span><span class="p">)</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;cdn_ssl_url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-ssl-url&#39;</span><span class="p">)</span>
+
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">url</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;meta_&#39;</span><span class="p">):</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">5</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;x-container-meta-&#39;</span><span class="p">):</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">17</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span>
+        <span class="n">_properties</span><span class="p">[</span><span class="s">&#39;meta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">_properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span>
+
+<div class="viewcode-block" id="Container"><a class="viewcode-back" href="../../container.html#object_storage.container.Container">[docs]</a><span class="k">class</span> <span class="nc">Container</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Container class. Encapsulates Storage containers. &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span> 
+        <span class="sd">&quot;&quot;&quot; constructor for Container</span>
+
+<span class="sd">        @param name: container name</span>
+<span class="sd">        @param headers: init headers to use when initializing the container</span>
+<span class="sd">        @param client: `object_storage.client` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ContainerModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Container.exists"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.exists">[docs]</a>    <span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Tries to load the container to check existance</span>
+
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: boolean, true if exists else false</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ContainerModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">errors</span><span class="o">.</span><span class="n">NotFound</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="Container.load"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; load data for the container</span>
+
+<span class="sd">        @param cdn: True if you want CDN information; default=True</span>
+<span class="sd">        @return: object_storage.container, self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">cdn</span><span class="p">:</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">&#39;X-Context&#39;</span><span class="p">,</span> <span class="s">&#39;cdn&#39;</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ContainerModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.get_info"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.get_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the properties &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">properties</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Container.properties"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.properties">[docs]</a>    <span class="k">def</span> <span class="nf">properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the properties &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_info</span><span class="p">()</span></div>
+    <span class="n">props</span> <span class="o">=</span> <span class="n">properties</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Container.headers"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.headers">[docs]</a>    <span class="k">def</span> <span class="nf">headers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the raw headers for the container &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">headers</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Container.meta"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.meta">[docs]</a>    <span class="k">def</span> <span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loads data if not already available and returns the metadata for the container &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">meta</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Container.path"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.path">[docs]</a>    <span class="k">def</span> <span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns path of the container &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">get_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Container.url"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.url">[docs]</a>    <span class="k">def</span> <span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the url of the container &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_url</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.is_dir"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.is_dir">[docs]</a>    <span class="k">def</span> <span class="nf">is_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns if the container is a directory (always True) &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">True</span>
+</div>
+<div class="viewcode-block" id="Container.set_metadata"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.set_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">set_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets metadata for the container</span>
+
+<span class="sd">        @param meta: dict of metadata on the container</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">meta_headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">meta_headers</span><span class="p">[</span><span class="s">&quot;x-container-meta-{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">meta_headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.create"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Create container</span>
+<span class="sd">        </span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: Containert - self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Length&#39;</span><span class="p">:</span> <span class="s">&#39;0&#39;</span><span class="p">})</span>
+</div>
+<div class="viewcode-block" id="Container.delete"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Delete container</span>
+<span class="sd">        </span>
+<span class="sd">        @param recursive: true if you want to delete all of the </span>
+<span class="sd">            objects in the container as well.</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delete_container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="Container.delete_all_objects"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.delete_all_objects">[docs]</a>    <span class="k">def</span> <span class="nf">delete_all_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Deletes all objects in the container</span>
+<span class="sd">        </span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">resps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">():</span>
+            <span class="n">resps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">delete</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">resps</span>
+        </div>
+<div class="viewcode-block" id="Container.delete_object"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.delete_object">[docs]</a>    <span class="k">def</span> <span class="nf">delete_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Deletes an object in the container</span>
+<span class="sd">        </span>
+<span class="sd">        @param obj: object name to delete</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">StorageObject</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delete_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.rename"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.rename">[docs]</a>    <span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_container</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rename container. Will not work if container is not empty.</span>
+<span class="sd">        </span>
+<span class="sd">        @param new_container: new container name</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">new_container</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Container.objects"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.objects">[docs]</a>    <span class="k">def</span> <span class="nf">objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">base_only</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Lists objects in the container.</span>
+<span class="sd">        </span>
+<span class="sd">        @param limit: limit of results to return.</span>
+<span class="sd">        @param marker: start listing after this object name</span>
+<span class="sd">        @param base_only: only return the base objects. </span>
+<span class="sd">            container/object not container/dir/object</span>
+<span class="sd">        @param headers: extra headers to use in the request</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        @return: list of StorageObject instances</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="s">&#39;json&#39;</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">base_only</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;delimiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s">&#39;marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">marker</span>
+
+        <span class="k">def</span> <span class="nf">_formatter</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="n">items</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>  
+                    <span class="k">if</span> <span class="s">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                        <span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">],</span> <span class="n">item</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">objects</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">_formatter</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.set_ttl"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.set_ttl">[docs]</a>    <span class="k">def</span> <span class="nf">set_ttl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ttl</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set time to live for CDN</span>
+<span class="sd">        </span>
+<span class="sd">        @param ttl: time in seconds to set as the TTL</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ttl</span><span class="p">:</span>
+            <span class="n">ttl</span> <span class="o">=</span> <span class="s">&#39; &#39;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-cdn-ttl&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ttl</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.set_read_acl"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.set_read_acl">[docs]</a>    <span class="k">def</span> <span class="nf">set_read_acl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acl</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set read ACL</span>
+<span class="sd">        </span>
+<span class="sd">        @param acl: ACL to set for the container</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-container-read&#39;</span><span class="p">:</span> <span class="n">acl</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="Container.set_write_acl"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.set_write_acl">[docs]</a>    <span class="k">def</span> <span class="nf">set_write_acl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acl</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set write ACL</span>
+<span class="sd">        </span>
+<span class="sd">        @param acl: ACL to set for the container</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-container-write&#39;</span><span class="p">:</span> <span class="n">acl</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.make_public"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.make_public">[docs]</a>    <span class="k">def</span> <span class="nf">make_public</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">1440</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Make container public</span>
+<span class="sd">        </span>
+<span class="sd">        @param ttl: time in seconds to set as the TTL</span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-container-read&#39;</span><span class="p">:</span> <span class="s">&#39;.r:*&#39;</span><span class="p">,</span> <span class="s">&#39;x-cdn-ttl&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">ttl</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span></div>
+    <span class="n">enable_cdn</span> <span class="o">=</span> <span class="n">make_public</span>
+
+<div class="viewcode-block" id="Container.make_private"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.make_private">[docs]</a>    <span class="k">def</span> <span class="nf">make_private</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Make container private (empty ACL)</span>
+<span class="sd">        </span>
+<span class="sd">        @raises ResponseError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-container-read&#39;</span><span class="p">:</span> <span class="s">&#39; &#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span></div>
+    <span class="n">disable_cdn</span> <span class="o">=</span> <span class="n">make_private</span>
+
+<div class="viewcode-block" id="Container.search"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Search within container. &quot;&quot;&quot;</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">options</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">})</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.get_object"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.get_object">[docs]</a>    <span class="k">def</span> <span class="nf">get_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calls get_object() on the client. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.storage_object"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.storage_object">[docs]</a>    <span class="k">def</span> <span class="nf">storage_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates a new instance of Object &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="Container.load_from_filename"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.load_from_filename">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates an object from a file. Uses the basename of the file path as the object name. &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">load_from_filename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Container.make_request"><a class="viewcode-back" href="../../container.html#object_storage.container.Container.make_request">[docs]</a>    <span class="k">def</span> <span class="nf">make_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Makes a request on the resource. &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">make_request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    </div>
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns object corresponding to the given name &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_object</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;Container({0})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an interator based on results of self.list() &quot;&quot;&quot;</span>
+        <span class="n">listing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">objects</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">listing</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">obj</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SoftLayer Object Storage v0.4 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../object_storage.html" >object_storage</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012 SoftLayer Technologies, Inc..
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>
