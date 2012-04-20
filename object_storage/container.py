@@ -176,7 +176,7 @@ class Container:
         @raises ResponseError
         """
         resps = []
-        for item in self.list():
+        for item in self.objects():
             resps.append(item.delete())
         return resps
         
@@ -311,7 +311,7 @@ class Container:
         return 'Container({0})'.format(self.name.encode("utf-8"))
 
     def __iter__(self):
-        """ Returns an interator based on results of self.list() """
+        """ Returns an interator based on results of self.objects() """
         listing = self.objects()
         for obj in listing:
             yield obj
