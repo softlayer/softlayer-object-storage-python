@@ -17,7 +17,7 @@ python setup.py build_sphinx
 ```
 
 Basic Usage
-----------
+-----------
 
 ```python
 import object_storage
