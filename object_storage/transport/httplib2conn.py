@@ -28,7 +28,8 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
             httplib2.debuglevel=4
         self.token = None
         self.storage_url = None
-        self.http = httplib2.Http(disable_ssl_certificate_validation=True)
+        self.http = httplib2.Http()
+        self.http.disable_ssl_certificate_validation = True
         self.auth = auth
         if not self.auth.authenticated:
             self.auth.authenticate()
@@ -88,7 +89,8 @@ class Authentication(BaseAuthentication):
         headers = {'X-Storage-User': self.username,
                    'X-Storage-Pass': self.api_key,
                    'Content-Length': '0'}
-        http = httplib2.Http(disable_ssl_certificate_validation=True)
+        http = httplib2.Http()
+        http.disable_ssl_certificate_validation = True
         res, content = http.request(self.auth_url, 'GET', headers=headers)
         response = Response()
         response.headers = res
