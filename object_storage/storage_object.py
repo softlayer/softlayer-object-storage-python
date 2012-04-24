@@ -208,7 +208,7 @@ class StorageObject:
         """
         return self.client.delete_object(self.container, self.name)
         
-    def read(self, size=0, offset=0):
+    def read(self, size=0, offset=0, headers=None):
         """ Reads object content
         
         @param size: number of bytes to read (0 reads all of the object data)
@@ -216,7 +216,7 @@ class StorageObject:
         @raises ResponseError
         @return: str, data
         """
-        headers = {}
+        headers = headers or {}
         if size > 0:
             _range = 'bytes=%d-%d' % (offset, (offset + size) - 1)
             headers['Range'] = _range
