@@ -42,11 +42,9 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
 
         if params:
             url = "%s?%s" % (url, urllib.urlencode(params))
-        #print url, method, headers, data
         def _make_request(headers):
-            logger.info("%s %s %s %s" % (url, method, headers, data))
+            logger.debug("%s %s %s" % (method, url, headers))
             res, content = self.http.request(url, method, headers=headers, body=data)
-            logger.info("%s %s" % (res, content))
             response = Response()
             response.headers = res
             response.status_code = int(res.status)
@@ -85,7 +83,6 @@ class Authentication(BaseAuthentication):
 
     def authenticate(self):
         """ Does authentication """
-        logger.info("authenticate!")
         headers = {'X-Storage-User': self.username,
                    'X-Storage-Pass': self.api_key,
                    'Content-Length': '0'}
