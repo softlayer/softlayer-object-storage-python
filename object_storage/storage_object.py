@@ -145,7 +145,7 @@ class StorageObject:
         path = [self.container, self.name]
         return get_path(path)
     
-    def list(self, limit=None, marker=None):
+    def list(self, limit=None, marker=None, base_only=False):
         """ Uses sudo-hierarchical structure to list the children objects.
         
         @param limit: limit of results to return.
@@ -155,20 +155,24 @@ class StorageObject:
         """
         params = {'format': 'json', 
                   'path': self.name}
+        if base_only:
+            params['delimiter'] = self.client.delimiter
         if limit:
             params['limit'] = limit
         if marker:
             params['marker'] = marker
         def _formatter(res):
-            objects = []
+            objects = {}
             if res.content:
                 items = json.loads(res.content)
                 for item in items:
-                    obj = self.client.storage_object(self.container,
-                                             item['name'],
-                                             headers=item)
-                    objects.append(obj)
-            return objects
+                    if 'name' in item:
+                        objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
+                    elif 'subdir' in item:
+                        item['name'] = item['subdir'].rstrip('/')
+                        item['content_type'] = 'application/directory'
+                        objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
+            return objects.values()
         return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)
     
     def is_dir(self):
@@ -343,7 +347,9 @@ class StorageObject:
         headers = {}
         headers['X-Copy-From'] = old_obj.path
         headers['Content-Length'] = "0"
-        return self.make_request('PUT', headers=headers, *args, formatter=lambda r: self, **kwargs)
+        if 'formatter' not in kwargs:
+            kwargs['formatter'] = lambda r: new_obj
+        return self.make_request('PUT', headers=headers, *args, **kwargs)
 
     def copy_to(self, new_obj, *args, **kwargs):
         """ Copies content from an existing object
@@ -355,7 +361,9 @@ class StorageObject:
         headers = {}
         headers['Destination'] = new_obj.path
         headers['Content-Length'] = "0"
-        return self.make_request('COPY', headers=headers, *args, formatter=lambda r: new_obj, **kwargs)
+        if 'formatter' not in kwargs:
+            kwargs['formatter'] = lambda r: new_obj
+        return self.make_request('COPY', headers=headers, *args, **kwargs)
 
     def rename(self, new_obj, *args, **kwargs):
         """ Copies content to a new object existing object and deletes the current object

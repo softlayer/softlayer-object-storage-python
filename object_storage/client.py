@@ -83,7 +83,7 @@ class Client(object):
 
         self.model = None
 
-    def load(self):
+    def load(self, cdn=True):
         """ load data for the account 
 
         @return: object_storage.client, self
