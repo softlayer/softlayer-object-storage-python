@@ -212,20 +212,24 @@ class Container:
         """
         params = {'format': 'json'}
         if base_only:
-            params['delimiter'] = '/'
+            params['delimiter'] = self.client.delimiter
         if limit:
             params['limit'] = limit
         if marker:
             params['marker'] = marker
 
         def _formatter(res):
-            objects = []
+            objects = {}
             if res.content:
                 items = json.loads(res.content)
                 for item in items:  
                     if 'name' in item:
-                        objects.append(self.storage_object(item['name'], item))
-            return objects
+                        objects[item['name']] = self.storage_object(item['name'], item)
+                    elif 'subdir' in item:
+                        item['name'] = item['subdir'].rstrip('/')
+                        item['content_type'] = 'application/directory'
+                        objects[item['name']] = self.storage_object(item['name'], item)
+            return objects.values()
         return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
 
     def set_ttl(self, ttl):
