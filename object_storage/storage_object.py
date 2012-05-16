@@ -153,8 +153,8 @@ class StorageObject:
         @raises ResponseError
         @return: list of StorageObject instances
         """
-        params = {'format': 'json', 
-                  'path': self.name}
+        params = {'format': 'json',
+                  'prefix': self.name+self.client.delimiter}
         if base_only:
             params['delimiter'] = self.client.delimiter
         if limit:
@@ -169,12 +169,13 @@ class StorageObject:
                     if 'name' in item:
                         objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
                     elif 'subdir' in item:
-                        item['name'] = item['subdir'].rstrip('/')
+                        name = item['subdir'].rstrip('/')
+                        item['name'] = name
                         item['content_type'] = 'application/directory'
                         objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
             return objects.values()
-        return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)
-    
+        return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)   
+ 
     def is_dir(self):
         """ returns True if content_type is 'text/directory' """
         return self.model.content_type == 'text/directory'
