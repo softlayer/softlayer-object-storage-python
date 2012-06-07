@@ -1,10 +1,11 @@
-""" 
+"""
     Misc Utils
 
     See COPYING for license information
 """
 
 import urllib
+
 
 def unicode_quote(s):
     """ Solves an issue with url-quoting unicode strings"""
@@ -15,8 +16,8 @@ def unicode_quote(s):
 
 
 def get_path(parts=None):
-    """ 
-        Returns the path to a resource. Parts can be a list of strings or 
+    """
+        Returns the path to a resource. Parts can be a list of strings or
         a string.
     """
     path = parts
