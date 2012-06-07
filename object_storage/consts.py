@@ -1,5 +1,5 @@
-""" 
-    Commonly used constants 
+"""
+    Commonly used constants
 
     See COPYING for license information
 """
