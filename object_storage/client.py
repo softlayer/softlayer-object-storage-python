@@ -18,6 +18,7 @@ import logging
 import UserDict
 logger = logging.getLogger(__name__)
 
+
 class AccountModel(UserDict.UserDict):
     def __init__(self, controller, headers={}):
         _headers = {}
@@ -30,7 +31,7 @@ class AccountModel(UserDict.UserDict):
         self._meta = None
 
         _properties = {}
-        
+
         _properties['container_count'] = int(self.headers.get('x-account-container-count') or\
                                              self.headers.get('count') or 0)
         _properties['object_count'] = int(self.headers.get('x-account-object-count') or\
@@ -53,22 +54,23 @@ class AccountModel(UserDict.UserDict):
         self.properties = _properties
         self.data = self.properties
 
+
 class Client(object):
     """
         Client class. Primary interface for the client.
     """
-    def __init__(self, username=None, 
-                       api_key=None, 
-                       connection=None, 
+    def __init__(self, username=None,
+                       api_key=None,
+                       connection=None,
                        delimiter='/',
                        **kwargs):
         """ constructor for Client object
 
         @param username: the username
         @param api_key: api_key for Object Storage
-        @param connection: `object_storage.transport.AuthenticatedConnection` 
+        @param connection: `object_storage.transport.AuthenticatedConnection`
             instance.
-        @param delimiter: the symbol to use to divid up hiearchical divisions 
+        @param delimiter: the symbol to use to divid up hiearchical divisions
             for objects.
         @param container_class: factory or class for Container constructing
         @param object_class: factory or class for StorageObject constructing
@@ -84,7 +86,7 @@ class Client(object):
         self.model = None
 
     def load(self, cdn=True):
-        """ load data for the account 
+        """ load data for the account
 
         @return: object_storage.client, self
         """
@@ -134,15 +136,15 @@ class Client(object):
         return True
 
     def search(self, q, options=None, **kwargs):
-        """ Access the search interface. 
+        """ Access the search interface.
         @param q: the search query. This can be None.
         @param options: options for the search API. Valid options:
             q.[fieldname] -> define search query for a specific field.
             field         -> field name (when using q)
             type          -> 'object' or 'container'; default shows both.
-            recursive     -> whether to search recursively or to limit to 
+            recursive     -> whether to search recursively or to limit to
                              one level; default=true
-        @param **kwargs: to be merged into the options param. 
+        @param **kwargs: to be merged into the options param.
             Provides a nicer interface for the same thing.
 
         More information on options:
@@ -163,10 +165,11 @@ class Client(object):
         params = dict(default_params.items() + params.items())
         headers = {'X-Context': 'search'}
         _path = None
-        if options.has_key('container'):
+        if 'container' in options:
             _path = [options['container']]
         if 'path' in options and type(options['path']) is not dict:
             _path = [options['path']]
+
         def _formatter(response):
             """ Formats search results. """
             headers = response.headers
@@ -184,18 +187,18 @@ class Client(object):
             count = int(headers.get('x-search-items-count', 0))
             total = int(headers.get('x-search-items-total', 0))
             return {'count': count, 'total': total, 'results': objs}
-        return self.make_request('GET', _path, headers=headers, 
+        return self.make_request('GET', _path, headers=headers,
                                              params=params,
                                              formatter=_formatter)
 
     def set_delimiter(self, delimiter):
-        """ Sets the delimiter for pseudo hierarchical directory structure. 
+        """ Sets the delimiter for pseudo hierarchical directory structure.
         @param delimiter: delimiter to use
         """
         self.delimiter = delimiter
 
     def set_storage_url(self, url):
-        """ Sets the storage URL. After authentication, the URL is automatically 
+        """ Sets the storage URL. After authentication, the URL is automatically
         populated, but the default value can be overwritten.
 
         @param url: url to use to call the Object Storage API.
@@ -203,15 +206,15 @@ class Client(object):
         self.storage_url = url
 
     def container(self, name, headers=None):
-        """ Initializes container object. 
-        
+        """ Initializes container object.
+
         @param name: name of the container
         @param headers: initial headers to use to initialize the object
         """
         return self.container_class(name, headers=headers, client=self)
 
     def get_container(self, name):
-        """ Makes a container object and calls load() on it. 
+        """ Makes a container object and calls load() on it.
         @param name: container name
         @raises ResponseError
         """
@@ -229,10 +232,10 @@ class Client(object):
         for k, v in meta.iteritems():
             meta_headers["x-account-meta-{0}".format(k)] = v
         self.make_request('POST', headers=meta_headers)
-    
+
     def create_container(self, name):
         """ Creates a new container
-        
+
         @param name: container name
         @raises ResponseError
         """
@@ -240,7 +243,7 @@ class Client(object):
 
     def delete_container(self, name, recursive=False):
         """ Deletes a container.
-        
+
         @param name: container name
         @raises ResponseError
         @raises ContainerNotEmpty if container is not empty
@@ -248,16 +251,17 @@ class Client(object):
         params = {}
         if recursive:
             params['recursive'] = True
+
         def _formatter(res):
             if res.status_code is 409:
                 raise errors.ContainerNotEmpty(name)
             return True
 
         return self.make_request('DELETE', [name], params=params, formatter=_formatter)
-    
+
     def containers(self, marker=None, headers=None):
         """ Lists containers
-        
+
         @param marker: start listing after this container name
         @param headers: extra headers to use when making the listing call
         @raises ResponseError
@@ -265,6 +269,7 @@ class Client(object):
         params = {'format': 'json'}
         if marker:
             params['marker'] = marker
+
         def _formatter(res):
             containers = []
             if res.content:
@@ -285,26 +290,26 @@ class Client(object):
 
     def storage_object(self, container, name, headers=None):
         """ Initialize a StorageObject instance
-            
+
         @param container: container name
         @param name: object name
         @param headers: initial headers to use to initialize the object
         """
-        return self.object_class(container, name, 
+        return self.object_class(container, name,
                                 headers=headers, client=self)
-        
+
     def get_object(self, container, name):
         """ Load an object from swift
-            
+
         @param container: container name
         @param name: object name
         @raises ResponseError
         """
         return self.storage_object(container, name).load()
-    
+
     def delete_object(self, container, name):
         """ Delete an object from swift
-            
+
         @param container: container name
         @param name: object name
         @raises ResponseError
@@ -313,7 +318,7 @@ class Client(object):
 
     def get_url(self, path=None):
         """ Returns the url of the resource
-        
+
         @param path: path to append to the end of the URL
         """
         url = self.storage_url
@@ -326,7 +331,7 @@ class Client(object):
 
     def make_request(self, method, path=None, *args, **kwargs):
         """ Make an HTTP request
-        
+
         @param method: HTTP method (GET, HEAD, POST, PUT, ...)
         @param path: path
         @raises ResponseError
@@ -335,9 +340,9 @@ class Client(object):
         result = self.conn.make_request(method, url, *args, **kwargs)
         return result
 
-    def chunk_download(self, path, chunk_size=10*1024, headers=None):
+    def chunk_download(self, path, chunk_size=10 * 1024, headers=None):
         """ Returns a chunk download generator
-        
+
         @param path: path
         @param chunk_size: the max size in bytes to return on each yield
         @param headers: extra headers to use with this request
@@ -348,7 +353,7 @@ class Client(object):
 
     def chunk_upload(self, path, headers=None):
         """ Returns a chunkable connection object at the given path
-        
+
         @param path: path
         @param headers: extra headers to use with this request
         @raises ResponseError
