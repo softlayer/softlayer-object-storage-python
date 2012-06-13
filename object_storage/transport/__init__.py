@@ -7,10 +7,11 @@ import httplib
 from socket  import timeout
 from urlparse import urlparse
 from object_storage.errors import ResponseError, NotFound
-from object_storage.utils import unicode_quote
 from object_storage import consts
 
-import urllib, urllib2
+import urllib
+import urllib2
+
 
 class Response(object):
     def __init__(self):
@@ -30,6 +31,7 @@ class Response(object):
         elif (self.status_code >= 500) and (self.status_code < 600):
             raise ResponseError(self.status_code, '%s Server Error' % self.status_code)
 
+
 class BaseAuthenticatedConnection:
     def _authenticate(self):
         """ Do authentication and set token and storage_url """
@@ -46,8 +48,8 @@ class BaseAuthenticatedConnection:
         headers = headers or {}
         headers.update(self.get_headers())
         return ChunkedUploadConnection(self, method, url, headers)
-        
-    def chunk_download(self, url, chunk_size=10*1024):
+
+    def chunk_download(self, url, chunk_size=10 * 1024):
         """ Returns new ChunkedConnection """
         headers = self.get_headers()
         req = urllib2.Request(url)
@@ -60,8 +62,9 @@ class BaseAuthenticatedConnection:
                 break
             yield buff
 
+
 class BaseAuthentication(object):
-    """ 
+    """
         Base Authentication class. To be inherited if you want to create
         a new Authentication method. authenticate() should be overwritten.
     """
@@ -88,13 +91,13 @@ class BaseAuthentication(object):
         if self.network in storage_urls:
             return storage_urls[self.network]
         return None
-    
+
     @property
     def auth_headers(self):
         return {'X-Auth-Token': 'AUTH_TOKEN'}
 
     def authenticate(self):
-        """ 
+        """
             Called when the client wants to authenticate. self.storage_url and
             self.auth_token needs to be set.
         """
@@ -102,8 +105,9 @@ class BaseAuthentication(object):
         self.auth_token = 'AUTH_TOKEN'
         self.authenticated = True
 
+
 class ChunkedUploadConnection:
-    """ 
+    """
         Chunked Connection class.
         send_chunk() will send more data.
         finish() will end the request.
@@ -113,7 +117,7 @@ class ChunkedUploadConnection:
         self.method = method
         self.req = None
         headers = headers or {}
-        
+
         if size is None:
             if 'Content-Length' in headers:
                 del headers['Content-Length']
@@ -133,7 +137,7 @@ class ChunkedUploadConnection:
             for key, value in headers.iteritems():
                 self.req.putheader(key, value)
             self.req.endheaders()
-        except Exception, err:
+        except Exception:
             raise ResponseError(0, 'Disconnected')
 
     def send(self, chunk):
@@ -156,7 +160,7 @@ class ChunkedUploadConnection:
 
         res = self.req.getresponse()
         content = res.read()
-        
+
         r = Response()
         r.status_code = res.status
         r.version = res.version
@@ -164,7 +168,8 @@ class ChunkedUploadConnection:
         r.content = content
         r.raise_for_status()
         return r
-        
+
+
 class ChunkedDownloadConnection:
     def __init__(self, conn, method, url, headers=None):
         self.conn = conn
@@ -172,7 +177,8 @@ class ChunkedDownloadConnection:
         self.url = url
         self.req = None
         self.headers = headers or {}
-        
+
+
 def requote_path(path):
     """Re-quote the given URL path component.
 
