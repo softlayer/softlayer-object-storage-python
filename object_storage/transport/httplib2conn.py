@@ -3,9 +3,7 @@
 
     See COPYING for license information
 """
-from urlparse import urlparse
 import urllib
-from object_storage import consts
 from object_storage import errors
 from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection, Response
 import httplib2
@@ -18,14 +16,15 @@ except ImportError:
 import logging
 logger = logging.getLogger(__name__)
 
+
 class AuthenticatedConnection(BaseAuthenticatedConnection):
-    """ 
-        Connection that will authenticate if it isn't already 
+    """
+        Connection that will authenticate if it isn't already
         and retry once if an auth error is returned.
     """
     def __init__(self, auth, debug=False, **kwargs):
         if debug:
-            httplib2.debuglevel=4
+            httplib2.debuglevel = 4
         self.token = None
         self.storage_url = None
         self.http = httplib2.Http()
@@ -34,7 +33,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         if not self.auth.authenticated:
             self.auth.authenticate()
         self._authenticate()
-        
+
     def make_request(self, method, url=None, headers=None, formatter=None, params=None, data=None, *args, **kwargs):
         """ Makes a request """
         headers = headers or {}
@@ -42,6 +41,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
 
         if params:
             url = "%s?%s" % (url, urllib.urlencode(params))
+
         def _make_request(headers):
             logger.debug("%s %s %s" % (method, url, headers))
             res, content = self.http.request(url, method, headers=headers, body=data)
@@ -58,13 +58,14 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
             self._authenticate()
             headers.update(self.auth_headers)
             response = _make_request(headers)
-        
+
         response.raise_for_status()
-        
+
         if formatter:
             return formatter(response)
         return response
-    
+
+
 class Authentication(BaseAuthentication):
     """
         Authentication class.

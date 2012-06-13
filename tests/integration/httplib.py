@@ -1,8 +1,9 @@
 import unittest
 import time
 import os
-from object_storage import get_httplib2_client, get_requests_client
+from object_storage import get_httplib2_client
 import ConfigParser
+
 
 class ClientTest(unittest.TestCase):
     container_name = 'python_test_container'
@@ -18,11 +19,11 @@ class ClientTest(unittest.TestCase):
         datacenter = account.get('datacenter')
         network = account.get('network')
         protocol = account.get('protocol')
-        self.client = get_httplib2_client(username, api_key, 
-                                                    auth_url=auth_url, 
-                                                    protocol=protocol, 
-                                                    datacenter=datacenter, 
-                                                    network=network)
+        self.client = get_httplib2_client(username, api_key,
+            auth_url=auth_url,
+            protocol=protocol,
+            datacenter=datacenter,
+            network=network)
 
     def tearDown(self):
         for container in self.client:
@@ -67,7 +68,7 @@ class ClientTest(unittest.TestCase):
         container.enable_cdn()
         time.sleep(2)
         lst = self.client.public_containers()
-        
+
         result_list = self.filter_by_name(lst)
         self.assert_(len(result_list) == 1)
         self.assert_(result_list.pop().name == self.container_name, "The container has CDN enabled")
@@ -116,7 +117,7 @@ class ClientTest(unittest.TestCase):
         obj.content_type = 'application/text'
         obj.create()
         time.sleep(3)
-        
+
         results = self.client.search('*test*', type='object')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 1, "Correct amount of search results")
@@ -126,10 +127,9 @@ class ClientTest(unittest.TestCase):
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 1, "Correct amount of search results")
         self.assert_(result_list.pop().name == self.object_name, "Correct search result name")
-        
+
         obj.delete()
         time.sleep(2)
         results = self.client.search('*test*', type='object')
         result_list = self.filter_by_name(results['results'])
         self.assert_(len(result_list) == 0, "Search returns no results")
-        
