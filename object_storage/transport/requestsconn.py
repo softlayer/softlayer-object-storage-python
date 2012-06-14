@@ -6,11 +6,7 @@
 import requests
 from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection
 from object_storage import errors
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from object_storage.utils import json
 
 import logging
 logger = logging.getLogger(__name__)

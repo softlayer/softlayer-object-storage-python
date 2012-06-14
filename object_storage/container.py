@@ -3,8 +3,8 @@
 
     See COPYING for license information
 """
-import json
 import os
+from object_storage.utils import json
 import UserDict
 from object_storage import errors
 from object_storage.storage_object import StorageObject
@@ -150,7 +150,7 @@ class Container:
         """
         meta_headers = {}
         for k, v in meta.iteritems():
-            meta_headers["x-container-meta-{0}".format(k)] = v
+            meta_headers["x-container-meta-%s" % (k, )] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
@@ -315,7 +315,7 @@ class Container:
         return self.name
 
     def __repr__(self):
-        return 'Container({0})'.format(self.name.encode("utf-8"))
+        return 'Container(%s)' % (self.name.encode("utf-8"), )
 
     def __iter__(self):
         """ Returns an interator based on results of self.objects() """

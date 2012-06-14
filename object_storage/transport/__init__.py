@@ -11,6 +11,7 @@ from object_storage import consts
 
 import urllib
 import urllib2
+import re
 
 
 class Response(object):
@@ -43,11 +44,11 @@ class BaseAuthenticatedConnection:
         """ Get default headers for this connection """
         return dict([('User-Agent', consts.USER_AGENT)] + self.auth_headers.items())
 
-    def chunk_upload(self, method, url, headers=None):
+    def chunk_upload(self, method, url, size=None, headers=None):
         """ Returns new ChunkedConnection """
         headers = headers or {}
         headers.update(self.get_headers())
-        return ChunkedUploadConnection(self, method, url, headers)
+        return ChunkedUploadConnection(self, method, url, size=size, headers=headers)
 
     def chunk_download(self, url, chunk_size=10 * 1024):
         """ Returns new ChunkedConnection """
@@ -112,26 +113,42 @@ class ChunkedUploadConnection:
         send_chunk() will send more data.
         finish() will end the request.
     """
-    def __init__(self, conn, method, url, headers=None, size=None):
+    def __init__(self, conn, method, url, size=None, headers=None):
         self.conn = conn
         self.method = method
         self.req = None
+        self._chunked_encoding = True
         headers = headers or {}
 
         if size is None:
-            if 'Content-Length' in headers:
-                del headers['Content-Length']
             headers['Transfer-Encoding'] = 'chunked'
         else:
+            self._chunked_encoding = False
             headers['Content-Length'] = str(size)
 
         if 'ETag' in headers:
             del headers['ETag']
 
-        url_parts = urlparse(url)
-        self.req = httplib.HTTPConnection(url_parts.hostname, url_parts.port)
+        scheme, netloc, path, params, query, fragment = urlparse(url)
+        match = re.match('([a-zA-Z0-9\-\.]+):?([0-9]{2,5})?', netloc)
 
-        path = requote_path(url_parts.path)
+        if match:
+            (host, port) = match.groups()
+        else:
+            ValueError('Invalid URL')
+
+        if not port:
+            if scheme == 'https':
+                port = 443
+            else:
+                port = 80
+
+        if scheme == 'https':
+            self.req = httplib.HTTPSConnection(host, port)
+        else:
+            self.req = httplib.HTTPConnection(host, port)
+
+        path = requote_path(path)
         try:
             self.req.putrequest('PUT', path)
             for key, value in headers.iteritems():
@@ -143,9 +160,12 @@ class ChunkedUploadConnection:
     def send(self, chunk):
         """ Sends a chunk of data. """
         try:
-            self.req.send("%X\r\n" % len(chunk))
-            self.req.send(chunk)
-            self.req.send("\r\n")
+            if self._chunked_encoding:
+                self.req.send("%X\r\n" % len(chunk))
+                self.req.send(chunk)
+                self.req.send("\r\n")
+            else:
+                self.req.send(chunk)
         except timeout, err:
             raise err
         except Exception, err:
@@ -154,7 +174,8 @@ class ChunkedUploadConnection:
     def finish(self):
         """ Finished the request out and receives a response. """
         try:
-            self.req.send("0\r\n\r\n")
+            if self._chunked_encoding:
+                self.req.send("0\r\n\r\n")
         except timeout, err:
             raise err
 

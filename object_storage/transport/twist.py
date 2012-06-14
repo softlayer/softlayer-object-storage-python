@@ -21,7 +21,7 @@ from twisted.web.iweb import IBodyProducer, UNKNOWN_LENGTH
 import urlparse
 import urllib
 
-import json
+from object_storage.utils import json
 
 
 def complete_request(resp, callback=None, load_body=True):
