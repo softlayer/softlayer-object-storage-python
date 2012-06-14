@@ -6,6 +6,17 @@
 
 import urllib
 
+try:
+    import json
+except ImportError:
+    try:
+        import simplejson as json
+    except ImportError:
+        try:
+            import django.utils.simplejson as json
+        except ImportError:
+            ImportError("Requires a json parsing library")
+
 
 def unicode_quote(s):
     """ Solves an issue with url-quoting unicode strings"""
