@@ -3,10 +3,15 @@
 
     See COPYING for license information
 """
-import json
+from object_storage.utils import json
 import mimetypes
 import os
+import StringIO
 import UserDict
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 from object_storage import errors
 from object_storage.utils import get_path
@@ -91,7 +96,7 @@ class StorageObject:
             self.model = StorageObjectModel(self, self.container, self.name, res.headers)
             return True
         try:
-            return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+            return self.make_request('HEAD', formatter=_formatter)
         except errors.NotFound:
             return False
 
@@ -192,7 +197,7 @@ class StorageObject:
         """
         meta_headers = {}
         for k, v in meta.iteritems():
-            meta_headers["X-Object-Meta-{0}".format(k)] = v
+            meta_headers["X-Object-Meta-%s" % (k, )] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
@@ -262,19 +267,20 @@ class StorageObject:
     iter_content = chunk_download
     __iter__ = chunk_download
 
-    def chunk_upload(self, headers=None):
+    def chunk_upload(self, size=None, headers=None):
         """ Returns a chunkable upload instance.
             This is needed for transient data uploads
 
+        @param headers: size in bytes, if known
         @param headers: extra headers to use to initialize the request
         @raises: ResponseError
         @return: object that responds to o.send('data') to send data
             and o.finish() to finish the upload.
         """
-        chunkable = self.client.chunk_upload([self.container, self.name], headers=headers)
+        chunkable = self.client.chunk_upload([self.container, self.name], size=size, headers=headers)
         return chunkable
 
-    def send(self, data):
+    def send(self, data, check_md5=True):
         """ Uploads object data
 
         @param data: either a file-like object or a string.
@@ -292,6 +298,9 @@ class StorageObject:
             if hasattr(data, '__len__'):
                 size = len(data)
 
+        if isinstance(data, basestring):
+            data = StringIO.StringIO(data)
+
         headers = {}
         content_type = self.content_type
         if not content_type:
@@ -301,12 +310,25 @@ class StorageObject:
             content_type = _type or mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
         headers['Content-Type'] = content_type
 
-        if size or size == 0:
-            headers['Content-Length'] = str(size)
-        else:
-            headers['Transfer-Encoding'] = 'chunked'
+        checksum = md5()
+        transfered = 0
+        conn = self.chunk_upload(size=size, headers=headers)
+        buff = data.read(4096)
+        while len(buff) > 0:
+            conn.send(buff)
+            if check_md5:
+                checksum.update(buff)
+            transfered += len(buff)
+            buff = data.read(4096)
+        res = conn.finish()
 
-        return self.make_request('PUT', data=data, headers=headers, formatter=lambda r: self)
+        if check_md5:
+            assert checksum.hexdigest() == res.headers['etag'], 'md5 hashes do not match'
+        res.headers['content-length'] = transfered
+        self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+        headers['Content-Type'] = content_type
+        return self
+
     write = send
 
     def upload_directory(self, directory):
@@ -341,7 +363,9 @@ class StorageObject:
         if os.path.isdir(filename):
             self.upload_directory(filename)
         else:
-            with open(filename, 'rb') as _file:
+            try:
+                _file = open(filename, 'rb')
+            finally:
                 return self.send(_file)
 
     def copy_from(self, old_obj, *args, **kwargs):
@@ -382,7 +406,8 @@ class StorageObject:
             return self.delete()
 
         def _copy_to(res):
-            return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
+            kwargs['formatter'] = _delete
+            return new_obj.copy_from(self, *args, **kwargs)
         return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
     def search(self, q, options=None, **kwargs):
@@ -422,7 +447,7 @@ class StorageObject:
         size = 'Unknown'
         if self.model:
             size = self.model.get('size', 0)
-        return 'StorageObject({0}, {1}, {2}B)'.format(self.container.encode("utf-8"), self.name.encode("utf-8"), size)
+        return 'StorageObject(%s, %s, %sB)' % (self.container.encode("utf-8"), self.name.encode("utf-8"), size)
     __repr__ = __str__
 
     def __enter__(self):

@@ -8,10 +8,7 @@ from object_storage import errors
 from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection, Response
 import httplib2
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from object_storage.utils import json
 
 import logging
 logger = logging.getLogger(__name__)

@@ -3,10 +3,7 @@
 
     See COPYING for license information.
 """
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from object_storage.utils import json
 
 from object_storage.container import Container
 from object_storage.storage_object import StorageObject
@@ -230,7 +227,7 @@ class Client(object):
         for k, v in headers.iteritems():
             meta_headers[k] = v
         for k, v in meta.iteritems():
-            meta_headers["x-account-meta-{0}".format(k)] = v
+            meta_headers["x-account-meta-%s" % (k, )] = v
         self.make_request('POST', headers=meta_headers)
 
     def create_container(self, name):
@@ -351,7 +348,7 @@ class Client(object):
         url = self.get_url(path)
         return self.conn.chunk_download(url, chunk_size=chunk_size)
 
-    def chunk_upload(self, path, headers=None):
+    def chunk_upload(self, path, size=None, headers=None):
         """ Returns a chunkable connection object at the given path
 
         @param path: path
@@ -359,7 +356,7 @@ class Client(object):
         @raises ResponseError
         """
         url = self.get_url(path)
-        return self.conn.chunk_upload('PUT', url, headers)
+        return self.conn.chunk_upload('PUT', url, size=size, headers=headers)
 
     def __getitem__(self, name):
         """ Returns a container object with the given name """
