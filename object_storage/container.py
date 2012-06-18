@@ -4,14 +4,13 @@
     See COPYING for license information
 """
 import os
-from object_storage.utils import json
-import UserDict
+from object_storage.utils import json, Model
 from object_storage import errors
 from object_storage.storage_object import StorageObject
 from object_storage.utils import get_path
 
 
-class ContainerModel(UserDict.UserDict):
+class ContainerModel(Model):
     def __init__(self, controller, name, headers={}):
         self.name = name
         _headers = {}
