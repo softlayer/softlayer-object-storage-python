@@ -3,11 +3,13 @@
 
     See COPYING for license information
 """
-from object_storage.utils import json
+from object_storage.utils import json, Model
 import mimetypes
 import os
-import StringIO
-import UserDict
+try:
+    import StringIO
+except ImportError:
+    from io import StringIO as StringIO
 try:
     from hashlib import md5
 except ImportError:
@@ -17,7 +19,7 @@ from object_storage import errors
 from object_storage.utils import get_path
 
 
-class StorageObjectModel(UserDict.UserDict):
+class StorageObjectModel(Model):
     def __init__(self, controller, container, name, headers={}):
         self.container = container
         self.name = name

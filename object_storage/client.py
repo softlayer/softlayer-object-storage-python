@@ -3,7 +3,7 @@
 
     See COPYING for license information.
 """
-from object_storage.utils import json
+from object_storage.utils import json, Model
 
 from object_storage.container import Container
 from object_storage.storage_object import StorageObject
@@ -12,11 +12,10 @@ from object_storage.utils import get_path
 from object_storage import errors
 
 import logging
-import UserDict
 logger = logging.getLogger(__name__)
 
 
-class AccountModel(UserDict.UserDict):
+class AccountModel(Model):
     def __init__(self, controller, headers={}):
         _headers = {}
 

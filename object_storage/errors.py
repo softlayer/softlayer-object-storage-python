@@ -5,7 +5,7 @@
 """
 
 
-class ObjectStorageError(StandardError):
+class ObjectStorageError(Exception):
     """ A general Object Storage error. """
     pass
 
