@@ -168,7 +168,7 @@ class ChunkedUploadConnection:
                 self.req.send(chunk)
         except timeout, err:
             raise err
-        except Exception, err:
+        except:
             raise ResponseError(0, 'Disconnected')
 
     def finish(self):
@@ -178,6 +178,8 @@ class ChunkedUploadConnection:
                 self.req.send("0\r\n\r\n")
         except timeout, err:
             raise err
+        except:
+            raise ResponseError(0, 'Disconnected')
 
         res = self.req.getresponse()
         content = res.read()

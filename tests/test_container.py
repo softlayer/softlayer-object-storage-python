@@ -1,7 +1,11 @@
-import unittest
-from mock import Mock, MagicMock
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+from mock import Mock
 from object_storage.container import Container
 from object_storage.storage_object import StorageObject
+
 
 class ContainerTest(unittest.TestCase):
     def test_instance_setup(self):
@@ -26,9 +30,9 @@ class ContainerTest(unittest.TestCase):
     def test_delete_all_objects(self):
         _item1 = Mock()
         _item2 = Mock()
-        self.container.list = Mock(return_value=[_item1, _item2])
+        self.container.objects = Mock(return_value=[_item1, _item2])
         self.container.delete_all_objects()
-        self.container.list.called_once_with()
+        self.container.objects.called_once_with()
         _item1.delete.assert_called_once_with()
         _item2.delete.assert_called_once_with()
 
@@ -94,3 +98,6 @@ class ContainerTest(unittest.TestCase):
     def setUp(self):
         self.client = Mock()
         self.container = Container('CONTAINER', client=self.client)
+
+if __name__ == "__main__":
+    unittest.main()

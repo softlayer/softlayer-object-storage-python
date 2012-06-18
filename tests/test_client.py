@@ -1,4 +1,7 @@
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 from mock import Mock
 from object_storage.client import Client
 
@@ -100,12 +103,13 @@ class ClientTest(unittest.TestCase):
     def test_chunk_upload(self):
         _headers = Mock()
         _chunkable = Mock()
+        _size = Mock()
         _url = Mock()
         self.client.get_url = Mock(return_value=_url)
         self.connection.chunk_upload.return_value = _chunkable
-        chunkable = self.client.chunk_upload('path', headers=_headers)
+        chunkable = self.client.chunk_upload('path', headers=_headers, size=_size)
         self.assert_(chunkable == _chunkable, "Chunkable returns from conn.get_chunkable")
-        self.connection.chunk_upload.assert_called_once_with('PUT', _url, _headers)
+        self.connection.chunk_upload.assert_called_once_with('PUT', _url, headers=_headers, size=_size)
 
     def test_getitem(self):
         _container = Mock()
@@ -124,3 +128,6 @@ class ClientTest(unittest.TestCase):
                                 object_class=self.object_class,
                                 connection=self.connection,
                             )
+
+if __name__ == "__main__":
+    unittest.main()
