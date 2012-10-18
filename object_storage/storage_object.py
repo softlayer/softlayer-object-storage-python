@@ -178,7 +178,7 @@ class StorageObject:
  
     def is_dir(self):
         """ returns True if content_type is 'text/directory' """
-        return self.model.content_type == 'text/directory'
+        return self.model.content_type in ['text/directory', 'application/directory']
 
     def set_metadata(self, meta):
         """ Sets metadata for the object
