@@ -177,8 +177,8 @@ class StorageObject:
         return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)   
  
     def is_dir(self):
-        """ returns True if content_type is 'text/directory' """
-        return self.model.content_type == 'text/directory'
+        """ returns True if content_type is 'text/directory' or 'application/directory' """
+        return self.model.content_type in ['text/directory', 'application/directory']
 
     def set_metadata(self, meta):
         """ Sets metadata for the object
