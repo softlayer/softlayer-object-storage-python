@@ -29,9 +29,22 @@ class ClientTest(unittest.TestCase):
         _result = Mock()
         self.obj.make_request = Mock(return_value=_result)
         result = self.obj.read()
+        self.obj.make_request.called_once_with('GET')
 
-        result = self.obj.read(1111, 2222)
-        self.obj.make_request.called_once_with('GET', headers={'Range': 'bytes=1111-3332'})
+    def test_read_with_offsets(self):
+        _result = Mock()
+        self.obj.make_request = Mock(return_value=_result)
+        result = self.obj.read(size=1111, offset=2222)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=2222-3332'})
+
+        result = self.obj.read(size=1111)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=0-1110'})
+
+        result = self.obj.read(size=-1111)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=-1111'})
+
+        result = self.obj.read(offset=2222)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=2222-'})
 
     def test_copy_to(self):
         _make_request = Mock()
