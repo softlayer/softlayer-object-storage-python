@@ -1,41 +1,51 @@
-""" 
-    Exceptions 
+"""
+    Exceptions
 
     See COPYING for license information
 """
-class ObjectStorageError(StandardError):
+
+
+class ObjectStorageError(Exception):
     """ A general Object Storage error. """
     pass
-    
+
+
 class AuthenticationError(ObjectStorageError):
     """ Could not authenticate. """
     pass
 
+
 class StorageURLNotFound(AuthenticationError):
-    """ 
+    """
         Raised when the requested protocol/network-type not found in Authentication response.
     """
     pass
-    
+
+
 class ContainerExists(ObjectStorageError):
     """ Container already exists """
     pass
-    
+
+
 class ContainerNotEmpty(ObjectStorageError):
     """ Container is not empty """
     pass
 
+
 class NotFound(ObjectStorageError):
     """ Resource not found """
-   
+
+
 class ObjectNotFound(NotFound):
     """ Object not found """
     pass
-    
+
+
 class ContainerNotFound(NotFound):
     """ Container not found """
     pass
-    
+
+
 class ResponseError(ObjectStorageError):
     """ Response error """
     def __init__(self, status, reason):
@@ -48,4 +58,3 @@ class ResponseError(ObjectStorageError):
 
     def __repr__(self):
         return '%d: %s' % (self.status, self.reason)
-    

@@ -7,10 +7,12 @@ import httplib
 from socket  import timeout
 from urlparse import urlparse
 from object_storage.errors import ResponseError, NotFound
-from object_storage.utils import unicode_quote
 from object_storage import consts
 
-import urllib, urllib2
+import urllib
+import urllib2
+import re
+
 
 class Response(object):
     def __init__(self):
@@ -30,6 +32,7 @@ class Response(object):
         elif (self.status_code >= 500) and (self.status_code < 600):
             raise ResponseError(self.status_code, '%s Server Error' % self.status_code)
 
+
 class BaseAuthenticatedConnection:
     def _authenticate(self):
         """ Do authentication and set token and storage_url """
@@ -41,13 +44,13 @@ class BaseAuthenticatedConnection:
         """ Get default headers for this connection """
         return dict([('User-Agent', consts.USER_AGENT)] + self.auth_headers.items())
 
-    def chunk_upload(self, method, url, headers=None):
+    def chunk_upload(self, method, url, size=None, headers=None):
         """ Returns new ChunkedConnection """
         headers = headers or {}
         headers.update(self.get_headers())
-        return ChunkedUploadConnection(self, method, url, headers)
-        
-    def chunk_download(self, url, chunk_size=10*1024):
+        return ChunkedUploadConnection(self, method, url, size=size, headers=headers)
+
+    def chunk_download(self, url, chunk_size=10 * 1024):
         """ Returns new ChunkedConnection """
         headers = self.get_headers()
         req = urllib2.Request(url)
@@ -60,8 +63,9 @@ class BaseAuthenticatedConnection:
                 break
             yield buff
 
+
 class BaseAuthentication(object):
-    """ 
+    """
         Base Authentication class. To be inherited if you want to create
         a new Authentication method. authenticate() should be overwritten.
     """
@@ -88,13 +92,13 @@ class BaseAuthentication(object):
         if self.network in storage_urls:
             return storage_urls[self.network]
         return None
-    
+
     @property
     def auth_headers(self):
         return {'X-Auth-Token': 'AUTH_TOKEN'}
 
     def authenticate(self):
-        """ 
+        """
             Called when the client wants to authenticate. self.storage_url and
             self.auth_token needs to be set.
         """
@@ -102,61 +106,84 @@ class BaseAuthentication(object):
         self.auth_token = 'AUTH_TOKEN'
         self.authenticated = True
 
+
 class ChunkedUploadConnection:
-    """ 
+    """
         Chunked Connection class.
         send_chunk() will send more data.
         finish() will end the request.
     """
-    def __init__(self, conn, method, url, headers=None, size=None):
+    def __init__(self, conn, method, url, size=None, headers=None):
         self.conn = conn
         self.method = method
         self.req = None
+        self._chunked_encoding = True
         headers = headers or {}
-        
+
         if size is None:
-            if 'Content-Length' in headers:
-                del headers['Content-Length']
             headers['Transfer-Encoding'] = 'chunked'
         else:
+            self._chunked_encoding = False
             headers['Content-Length'] = str(size)
 
         if 'ETag' in headers:
             del headers['ETag']
 
-        url_parts = urlparse(url)
-        self.req = httplib.HTTPConnection(url_parts.hostname, url_parts.port)
+        scheme, netloc, path, params, query, fragment = urlparse(url)
+        match = re.match('([a-zA-Z0-9\-\.]+):?([0-9]{2,5})?', netloc)
 
-        path = requote_path(url_parts.path)
+        if match:
+            (host, port) = match.groups()
+        else:
+            ValueError('Invalid URL')
+
+        if not port:
+            if scheme == 'https':
+                port = 443
+            else:
+                port = 80
+
+        if scheme == 'https':
+            self.req = httplib.HTTPSConnection(host, port)
+        else:
+            self.req = httplib.HTTPConnection(host, port)
+
+        path = requote_path(path)
         try:
             self.req.putrequest('PUT', path)
             for key, value in headers.iteritems():
                 self.req.putheader(key, value)
             self.req.endheaders()
-        except Exception, err:
+        except Exception:
             raise ResponseError(0, 'Disconnected')
 
     def send(self, chunk):
         """ Sends a chunk of data. """
         try:
-            self.req.send("%X\r\n" % len(chunk))
-            self.req.send(chunk)
-            self.req.send("\r\n")
+            if self._chunked_encoding:
+                self.req.send("%X\r\n" % len(chunk))
+                self.req.send(chunk)
+                self.req.send("\r\n")
+            else:
+                self.req.send(chunk)
         except timeout, err:
             raise err
-        except Exception, err:
+        except:
             raise ResponseError(0, 'Disconnected')
 
     def finish(self):
         """ Finished the request out and receives a response. """
         try:
-            self.req.send("0\r\n\r\n")
+            if self._chunked_encoding:
+                self.req.send("0\r\n\r\n")
         except timeout, err:
             raise err
+        except:
+            raise ResponseError(0, 'Disconnected')
 
         res = self.req.getresponse()
         content = res.read()
-        
+
         r = Response()
         r.status_code = res.status
         r.version = res.version
@@ -164,7 +191,8 @@ class ChunkedUploadConnection:
         r.content = content
         r.raise_for_status()
         return r
-        
+
+
 class ChunkedDownloadConnection:
     def __init__(self, conn, method, url, headers=None):
         self.conn = conn
@@ -172,7 +200,8 @@ class ChunkedDownloadConnection:
         self.url = url
         self.req = None
         self.headers = headers or {}
-        
+
+
 def requote_path(path):
     """Re-quote the given URL path component.
 
