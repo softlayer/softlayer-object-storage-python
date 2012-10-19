@@ -225,7 +225,7 @@ class StorageObject:
         """
         return self.client.delete_object(self.container, self.name)
 
-    def read(self, size=0, offset=0, headers=None):
+    def read(self, size=None, offset=None, headers=None):
         """ Reads object content
 
         @param size: number of bytes to read (0 reads all of the object data)
@@ -234,9 +234,16 @@ class StorageObject:
         @return: str, data
         """
         headers = headers or {}
-        if size > 0:
-            _range = 'bytes=%d-%d' % (offset, (offset + size) - 1)
-            headers['Range'] = _range
+        if all([offset, size]):
+            end = (offset + size) - 1
+            headers['Range'] = 'bytes=%s-%s' % (offset, end)
+        elif offset is None and size is not None and size < 0:
+            headers['Range'] = 'bytes=%s' % (size,)
+        elif offset is None and size:
+            end = size - 1
+            headers['Range'] = 'bytes=0-%s' % (end,)
+        elif offset is not None and size is None:
+            headers['Range'] = 'bytes=%s-' % (offset,)
 
         def _formatter(res):
             return res.content
