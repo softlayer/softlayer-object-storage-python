@@ -3,16 +3,23 @@
 
     See COPYING for license information
 """
-import json
+from object_storage.utils import json, Model
 import mimetypes
 import os
-import StringIO
-import UserDict
+try:
+    import StringIO
+except ImportError:
+    from io import StringIO as StringIO
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 from object_storage import errors
 from object_storage.utils import get_path
 
-class StorageObjectModel(UserDict.UserDict):
+
+class StorageObjectModel(Model):
     def __init__(self, controller, container, name, headers={}):
         self.container = container
         self.name = name
@@ -24,7 +31,7 @@ class StorageObjectModel(UserDict.UserDict):
             _headers[_key] = value
         self.headers = _headers
         self._meta = None
-        
+
         _properties = {'container': self.container, 'name': self.name}
 
         _properties['size'] = int(self.headers.get('content-length') or\
@@ -58,11 +65,13 @@ class StorageObjectModel(UserDict.UserDict):
         self.properties = _properties
         self.data = self.properties
 
+
 class StorageObject:
-    """ 
+    """
         Representation of a Object Storage object.
     """
-    chunk_size=10*1024
+    chunk_size = 10 * 1024
+
     def __init__(self, container, name, headers=None, client=None):
         """ constructor for StorageObject
 
@@ -89,7 +98,7 @@ class StorageObject:
             self.model = StorageObjectModel(self, self.container, self.name, res.headers)
             return True
         try:
-            return self.make_request('HEAD', headers={'X-Context': 'cdn'}, formatter=_formatter)
+            return self.make_request('HEAD', formatter=_formatter)
         except errors.NotFound:
             return False
 
@@ -102,6 +111,7 @@ class StorageObject:
         headers = {}
         if cdn:
             headers.setdefault('X-Context', 'cdn')
+
         def _formatter(res):
             self.model = StorageObjectModel(self, self.container, self.name, res.headers)
             return self
@@ -144,23 +154,24 @@ class StorageObject:
         """ Get the path of the object """
         path = [self.container, self.name]
         return get_path(path)
-    
+
     def list(self, limit=None, marker=None, base_only=False):
         """ Uses sudo-hierarchical structure to list the children objects.
-        
+
         @param limit: limit of results to return.
         @param marker: start listing after this object name
         @raises ResponseError
         @return: list of StorageObject instances
         """
         params = {'format': 'json',
-                  'prefix': self.name+self.client.delimiter}
+                  'prefix': self.name + self.client.delimiter}
         if base_only:
             params['delimiter'] = self.client.delimiter
         if limit:
             params['limit'] = limit
         if marker:
             params['marker'] = marker
+
         def _formatter(res):
             objects = {}
             if res.content:
@@ -174,8 +185,8 @@ class StorageObject:
                         item['content_type'] = 'application/directory'
                         objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
             return objects.values()
-        return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)   
- 
+        return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)
+
     def is_dir(self):
         """ returns True if content_type is 'text/directory' or 'application/directory' """
         return self.model.content_type in ['text/directory', 'application/directory']
@@ -188,12 +199,12 @@ class StorageObject:
         """
         meta_headers = {}
         for k, v in meta.iteritems():
-            meta_headers["X-Object-Meta-{0}".format(k)] = v
+            meta_headers["X-Object-Meta-%s" % (k, )] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
         """ Create object
-        
+
         @raises ResponseError
         @return: StorageObject - self
         """
@@ -201,37 +212,46 @@ class StorageObject:
         if not content_type:
             content_type = 'application/octet-stream'
         headers = {'content-type': content_type, 'Content-Length': '0'}
+
         def _formatter(res):
             return self
         return self.make_request('PUT', headers=headers, formatter=_formatter)
-        
+
     def delete(self, recursive=False):
         """ Delete object
-        
+
         @raises ResponseError
         @return: True
         """
         return self.client.delete_object(self.container, self.name)
-        
-    def read(self, size=0, offset=0, headers=None):
+
+    def read(self, size=None, offset=None, headers=None):
         """ Reads object content
-        
+
         @param size: number of bytes to read (0 reads all of the object data)
         @param offset: number of bytes to offset the read
         @raises ResponseError
         @return: str, data
         """
         headers = headers or {}
-        if size > 0:
-            _range = 'bytes=%d-%d' % (offset, (offset + size) - 1)
-            headers['Range'] = _range
+        if all([offset, size]):
+            end = (offset + size) - 1
+            headers['Range'] = 'bytes=%s-%s' % (offset, end)
+        elif offset is None and size is not None and size < 0:
+            headers['Range'] = 'bytes=%s' % (size,)
+        elif offset is None and size:
+            end = size - 1
+            headers['Range'] = 'bytes=0-%s' % (end,)
+        elif offset is not None and size is None:
+            headers['Range'] = 'bytes=%s-' % (offset,)
+
         def _formatter(res):
             return res.content
         return self.make_request('GET', headers=headers, formatter=_formatter)
 
     def save_to_filename(self, filename):
         """ Reads object content into a file
-        
+
         @param filename: filename
         @raises ResponseError
         """
@@ -242,11 +262,11 @@ class StorageObject:
                 f.write(data)
         finally:
             f.close()
-        
+
     def chunk_download(self, chunk_size=None):
         """ Returns an iterator to read the object data.
-        
-        @param chunk_size: size of the chunks to read in. 
+
+        @param chunk_size: size of the chunks to read in.
             If not defined uses self.chunk_size
         @raises: ResponseError
         @return: iterable
@@ -255,22 +275,23 @@ class StorageObject:
         return self.client.chunk_download([self.container, self.name], chunk_size=chunk_size)
     iter_content = chunk_download
     __iter__ = chunk_download
-    
-    def chunk_upload(self, headers=None):
+
+    def chunk_upload(self, size=None, headers=None):
         """ Returns a chunkable upload instance.
             This is needed for transient data uploads
-        
+
+        @param headers: size in bytes, if known
         @param headers: extra headers to use to initialize the request
         @raises: ResponseError
-        @return: object that responds to o.send('data') to send data 
+        @return: object that responds to o.send('data') to send data
             and o.finish() to finish the upload.
         """
-        chunkable = self.client.chunk_upload([self.container, self.name], headers=headers)
+        chunkable = self.client.chunk_upload([self.container, self.name], size=size, headers=headers)
         return chunkable
-        
-    def send(self, data):
+
+    def send(self, data, check_md5=True):
         """ Uploads object data
-        
+
         @param data: either a file-like object or a string.
         @raises: ResponseError
         @return: StorageObject, self
@@ -286,6 +307,9 @@ class StorageObject:
             if hasattr(data, '__len__'):
                 size = len(data)
 
+        if isinstance(data, basestring):
+            data = StringIO.StringIO(data)
+
         headers = {}
         content_type = self.content_type
         if not content_type:
@@ -295,17 +319,30 @@ class StorageObject:
             content_type = _type or mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
         headers['Content-Type'] = content_type
 
-        if size or size == 0:
-            headers['Content-Length'] = str(size)
-        else:
-            headers['Transfer-Encoding'] = 'chunked'
+        checksum = md5()
+        transfered = 0
+        conn = self.chunk_upload(size=size, headers=headers)
+        buff = data.read(4096)
+        while len(buff) > 0:
+            conn.send(buff)
+            if check_md5:
+                checksum.update(buff)
+            transfered += len(buff)
+            buff = data.read(4096)
+        res = conn.finish()
 
-        return self.make_request('PUT', data=data, headers=headers, formatter=lambda r: self)
+        if check_md5:
+            assert checksum.hexdigest() == res.headers['etag'], 'md5 hashes do not match'
+        res.headers['content-length'] = transfered
+        self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+        headers['Content-Type'] = content_type
+        return self
+
     write = send
-   
+
     def upload_directory(self, directory):
         """ Uploads an entire directory
-        
+
         @param directory: path of the directory to upload
         @raises: ResponseError
         """
@@ -316,31 +353,33 @@ class StorageObject:
                 directories.append(os.path.relpath(os.path.join(root, _dir)))
             for _file in filenames:
                 files.append(os.path.relpath(os.path.join(root, _file)))
-                
+
         for _dir in directories:
             obj = self.__class__(self.container, _dir, client=self.client)
             obj.content_type = 'application/directory'
             obj.create()
-        
+
         for _file in files:
             obj = self.__class__(self.container, _file, client=self.client)
             obj.load_from_filename(_file)
-            
+
     def load_from_filename(self, filename):
         """ Uploads a file from the local filename
-        
+
         @param filename: path of the directory to upload
         @raises: ResponseError, IOError
         """
         if os.path.isdir(filename):
             self.upload_directory(filename)
         else:
-            with open(filename, 'rb') as _file:
+            try:
+                _file = open(filename, 'rb')
+            finally:
                 return self.send(_file)
 
     def copy_from(self, old_obj, *args, **kwargs):
         """ Copies content from an existing object
-        
+
         @param old_obj: StorageObject instance to copy data from
         @raises: ResponseError
         @return: StorageObject, self
@@ -349,12 +388,12 @@ class StorageObject:
         headers['X-Copy-From'] = old_obj.path
         headers['Content-Length'] = "0"
         if 'formatter' not in kwargs:
-            kwargs['formatter'] = lambda r: new_obj
+            kwargs['formatter'] = lambda r: self
         return self.make_request('PUT', headers=headers, *args, **kwargs)
 
     def copy_to(self, new_obj, *args, **kwargs):
         """ Copies content from an existing object
-        
+
         @param new_obj: StorageObject instance to copy data to
         @raises: ResponseError
         @return: StorageObject, new_obj
@@ -368,14 +407,16 @@ class StorageObject:
 
     def rename(self, new_obj, *args, **kwargs):
         """ Copies content to a new object existing object and deletes the current object
-        
+
         @param new_obj: StorageObject instance to copy data to
         @raises: ResponseError
         """
         def _delete(res):
             return self.delete()
+
         def _copy_to(res):
-            return new_obj.copy_from(self, *args, formatter=_delete, **kwargs)
+            kwargs['formatter'] = _delete
+            return new_obj.copy_from(self, *args, **kwargs)
         return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
     def search(self, q, options=None, **kwargs):
@@ -384,12 +425,12 @@ class StorageObject:
         options.update({'path': "%s/%s" % (self.container, self.name)})
         return self.client.search(q, options=options, **kwargs)
 
-    def prime_cdn(self):
+    def prime_cdn(self, *args, **kwargs):
         """ Prime the object for CDN usage """
         headers = {'X-Context': 'cdn', 'X-Cdn-Load': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 
-    def purge_cdn(self):
+    def purge_cdn(self, *args, **kwargs):
         """ Purge the object for CDN usage """
         headers = {'X-Context': 'cdn', 'X-Cdn-Purge': True}
         return self.make_request('POST', headers=headers, *args, **kwargs)
@@ -401,7 +442,7 @@ class StorageObject:
 
     def fileno(self):
         return 1
-    
+
     def __len__(self):
         if not self.model:
             self.load()
@@ -410,12 +451,12 @@ class StorageObject:
     def __getitem__(self, name):
         new_name = self.client.delimiter.join([self.name, name])
         return self.client.storage_object(self.container, new_name)
-        
+
     def __str__(self):
         size = 'Unknown'
         if self.model:
             size = self.model.get('size', 0)
-        return 'StorageObject({0}, {1}, {2}B)'.format(self.container.encode("utf-8"), self.name.encode("utf-8"), size)
+        return 'StorageObject(%s, %s, %sB)' % (self.container.encode("utf-8"), self.name.encode("utf-8"), size)
     __repr__ = __str__
 
     def __enter__(self):

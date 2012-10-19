@@ -4,24 +4,17 @@
     See COPYING for license information
 """
 import requests
-import httplib
-from socket  import timeout
-from urlparse import urlparse
-from object_storage import consts
 from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection
 from object_storage import errors
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from object_storage.utils import json
 
 import logging
 logger = logging.getLogger(__name__)
 
+
 class AuthenticatedConnection(BaseAuthenticatedConnection):
-    """ 
-        Connection that will authenticate if it isn't already 
+    """
+        Connection that will authenticate if it isn't already
         and retry once if an auth error is returned.
     """
     def __init__(self, auth, **kwargs):
@@ -30,7 +23,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         self.auth = auth
         self.auth.authenticate()
         self._authenticate()
-        
+
     def make_request(self, method, url=None, *args, **kwargs):
         """ Makes a request """
         _headers = kwargs.get('headers', {})
@@ -38,7 +31,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         if _headers:
             headers.update(_headers)
         kwargs['headers'] = headers
-        
+
         if 'verify' not in kwargs:
             kwargs['verify'] = False
 
@@ -51,7 +44,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         if kwargs.get('return_response', True):
             res = self._check_success(res)
             if res.status_code == 404:
-                raise NotFound('Not found')
+                raise errors.NotFound('Not found')
             if res.error:
                 try:
                     raise res.raise_for_status()
@@ -61,10 +54,10 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
         if formatter:
             return formatter(res)
         return res
-    
+
     def _check_success(self, res):
-        """ 
-            Checks for request success. If a 401 is returned, it will 
+        """
+            Checks for request success. If a 401 is returned, it will
             authenticate again and retry the request.
         """
         if res.status_code == 401:
@@ -75,6 +68,7 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
             res.request.send(anyway=True)
             res = res.request.response
         return res
+
 
 class Authentication(BaseAuthentication):
     """
@@ -99,7 +93,7 @@ class Authentication(BaseAuthentication):
             raise errors.AuthenticationError('Invalid Credentials')
 
         response.raise_for_status()
-        
+
         try:
             storage_options = json.loads(response.content)['storage']
         except ValueError:

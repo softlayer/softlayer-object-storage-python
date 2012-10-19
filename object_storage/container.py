@@ -3,14 +3,14 @@
 
     See COPYING for license information
 """
-import json
 import os
-import UserDict
+from object_storage.utils import json, Model
 from object_storage import errors
 from object_storage.storage_object import StorageObject
 from object_storage.utils import get_path
 
-class ContainerModel(UserDict.UserDict):
+
+class ContainerModel(Model):
     def __init__(self, controller, name, headers={}):
         self.name = name
         _headers = {}
@@ -54,9 +54,10 @@ class ContainerModel(UserDict.UserDict):
         self.properties = _properties
         self.data = self.properties
 
+
 class Container:
     """ Container class. Encapsulates Storage containers. """
-    def __init__(self, name, headers=None, client=None): 
+    def __init__(self, name, headers=None, client=None):
         """ constructor for Container
 
         @param name: container name
@@ -92,6 +93,7 @@ class Container:
         headers = {}
         if cdn:
             headers.setdefault('X-Context', 'cdn')
+
         def _formatter(res):
             self.model = ContainerModel(self, self.name, res.headers)
             return self
@@ -147,12 +149,12 @@ class Container:
         """
         meta_headers = {}
         for k, v in meta.iteritems():
-            meta_headers["x-container-meta-{0}".format(k)] = v
+            meta_headers["x-container-meta-%s" % (k, )] = v
         return self.make_request('POST', headers=meta_headers)
 
     def create(self):
         """ Create container
-        
+
         @raises ResponseError
         @return: Containert - self
         """
@@ -162,27 +164,27 @@ class Container:
 
     def delete(self, recursive=False):
         """ Delete container
-        
-        @param recursive: true if you want to delete all of the 
+
+        @param recursive: true if you want to delete all of the
             objects in the container as well.
         @raises ResponseError
         @return: True
         """
         return self.client.delete_container(self.name, recursive=recursive)
-        
+
     def delete_all_objects(self):
         """ Deletes all objects in the container
-        
+
         @raises ResponseError
         """
         resps = []
         for item in self.objects():
             resps.append(item.delete())
         return resps
-        
+
     def delete_object(self, obj):
         """ Deletes an object in the container
-        
+
         @param obj: object name to delete
         @raises ResponseError
         """
@@ -192,7 +194,7 @@ class Container:
 
     def rename(self, new_container):
         """ Rename container. Will not work if container is not empty.
-        
+
         @param new_container: new container name
         @raises ResponseError
         """
@@ -201,10 +203,10 @@ class Container:
 
     def objects(self, limit=None, marker=None, base_only=False, headers=None):
         """ Lists objects in the container.
-        
+
         @param limit: limit of results to return.
         @param marker: start listing after this object name
-        @param base_only: only return the base objects. 
+        @param base_only: only return the base objects.
             container/object not container/dir/object
         @param headers: extra headers to use in the request
         @raises ResponseError
@@ -222,7 +224,7 @@ class Container:
             objects = {}
             if res.content:
                 items = json.loads(res.content)
-                for item in items:  
+                for item in items:
                     if 'name' in item:
                         objects[item['name']] = self.storage_object(item['name'], item)
                     elif 'subdir' in item:
@@ -234,7 +236,7 @@ class Container:
 
     def set_ttl(self, ttl):
         """ Set time to live for CDN
-        
+
         @param ttl: time in seconds to set as the TTL
         @raises ResponseError
         """
@@ -245,16 +247,16 @@ class Container:
 
     def set_read_acl(self, acl):
         """ Set read ACL
-        
+
         @param acl: ACL to set for the container
         @raises ResponseError
         """
         headers = {'x-container-read': acl}
         return self.make_request('POST', headers=headers)
-        
+
     def set_write_acl(self, acl):
         """ Set write ACL
-        
+
         @param acl: ACL to set for the container
         @raises ResponseError
         """
@@ -263,7 +265,7 @@ class Container:
 
     def make_public(self, ttl=1440):
         """ Make container public
-        
+
         @param ttl: time in seconds to set as the TTL
         @raises ResponseError
         """
@@ -273,7 +275,7 @@ class Container:
 
     def make_private(self):
         """ Make container private (empty ACL)
-        
+
         @raises ResponseError
         """
         headers = {'x-container-read': ' '}
@@ -293,7 +295,7 @@ class Container:
     def storage_object(self, name, headers=None):
         """ Creates a new instance of Object """
         return self.client.storage_object(self.name, name, headers=headers)
-        
+
     def load_from_filename(self, filename):
         """ Creates an object from a file. Uses the basename of the file path as the object name. """
         name = os.path.basename(filename)
@@ -303,16 +305,16 @@ class Container:
         """ Makes a request on the resource. """
         path = [self.name]
         return self.client.make_request(method, path, *args, **kwargs)
-    
+
     def __getitem__(self, name):
         """ Returns object corresponding to the given name """
         return self.storage_object(name)
-        
+
     def __str__(self):
         return self.name
-        
+
     def __repr__(self):
-        return 'Container({0})'.format(self.name.encode("utf-8"))
+        return 'Container(%s)' % (self.name.encode("utf-8"), )
 
     def __iter__(self):
         """ Returns an interator based on results of self.objects() """

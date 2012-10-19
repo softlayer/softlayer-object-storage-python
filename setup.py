@@ -1,9 +1,22 @@
 #!/usr/bin/python
 from setuptools import setup, find_packages
-from object_storage import __version__
+import sys
+from object_storage.consts import __version__
 
 name = 'softlayer-object-storage'
 version = __version__
+_ver = sys.version_info
+
+requirements = ['httplib2']
+if _ver[0] == 2 and _ver[1] < 6:
+    requirements.append('simplejson')
+
+
+# Python 3 conversion
+extra = {}
+if sys.version_info >= (3,):
+    extra['use_2to3'] = True
+
 setup(
     name=name,
     version=version,
@@ -22,9 +35,8 @@ setup(
     author_email='sldn@softlayer.com',
     url='https://github.com/softlayer/softlayer-object-storage-python',
     license='MIT',
-    packages=find_packages(exclude=['test', 'ez_setup', 'examples']),
     test_suite='tests',
-    install_requires=['httplib2'],
-    setup_requires=['mock'],
-    namespace_packages=[]
+    packages=find_packages(exclude=['tests']),
+    install_requires=requirements,
+    **extra
 )
