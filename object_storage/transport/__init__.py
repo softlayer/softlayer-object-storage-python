@@ -8,6 +8,7 @@ from socket  import timeout
 from urlparse import urlparse
 from object_storage.errors import ResponseError, NotFound
 from object_storage import consts
+from object_storage.utils import unicode_quote
 
 import urllib
 import urllib2
@@ -209,5 +210,5 @@ def requote_path(path):
     ensure that it is fully and consistently quoted.
     """
     parts = path.split("/")
-    parts = (urllib.quote(urllib.unquote(part), safe="") for part in parts)
+    parts = (unicode_quote(urllib.unquote(part)) for part in parts)
     return "/".join(parts)
