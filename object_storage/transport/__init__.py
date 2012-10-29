@@ -148,8 +148,6 @@ class ChunkedUploadConnection:
             self.req = httplib.HTTPSConnection(host, port)
         else:
             self.req = httplib.HTTPConnection(host, port)
-
-        path = requote_path(path)
         try:
             self.req.putrequest('PUT', path)
             for key, value in headers.iteritems():
@@ -202,13 +200,3 @@ class ChunkedDownloadConnection:
         self.req = None
         self.headers = headers or {}
 
-
-def requote_path(path):
-    """Re-quote the given URL path component.
-
-    This function passes the given path through an unquote/quote cycle to
-    ensure that it is fully and consistently quoted.
-    """
-    parts = path.split("/")
-    parts = (unicode_quote(urllib.unquote(part)) for part in parts)
-    return "/".join(parts)
