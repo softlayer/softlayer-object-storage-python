@@ -4,7 +4,13 @@ Python bindings for SoftLayer Object Storage
 
 Installation
 ------------
-Download source and run:
+Install via pip:
+```
+sudo apt-get install python-pip
+sudo pip install softlayer-object-storage
+```
+
+Or download source and run:
 
 ```
 python setup.py install
