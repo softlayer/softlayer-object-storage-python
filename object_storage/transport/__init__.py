@@ -8,9 +8,7 @@ from socket  import timeout
 from urlparse import urlparse
 from object_storage.errors import ResponseError, NotFound
 from object_storage import consts
-from object_storage.utils import unicode_quote
 
-import urllib
 import urllib2
 import re
 

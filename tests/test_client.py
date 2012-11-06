@@ -4,6 +4,7 @@ except ImportError:
     import unittest
 from mock import Mock
 from object_storage.client import Client
+from object_storage.errors import ResponseError, ContainerNotEmpty
 
 
 class ClientTest(unittest.TestCase):
@@ -41,6 +42,18 @@ class ClientTest(unittest.TestCase):
         result = self.client.create_container('container_name')
         self.assert_(created_item == result, 'returns the container itself')
         self.container_class.assert_called_with('container_name', client=self.client, headers=None)
+
+    def test_delete_container_raises_not_empty(self):
+        self.client.make_request = Mock()
+        self.client.make_request.side_effect = ResponseError(409, '409 Client Error')
+        self.connection.make_request().content
+        self.assertRaises(ContainerNotEmpty, self.client.delete_container, 'container')
+
+    def test_delete_container_raises_other_error(self):
+        self.client.make_request = Mock()
+        self.client.make_request.side_effect = ResponseError(404, '404 Not Found')
+        self.connection.make_request().content
+        self.assertRaises(ResponseError, self.client.delete_container, 'container')
 
     def test_list_containers(self):
         self.connection.storage_url = 'storage_url'

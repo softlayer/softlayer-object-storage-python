@@ -248,12 +248,12 @@ class Client(object):
         if recursive:
             params['recursive'] = True
 
-        def _formatter(res):
-            if res.status_code is 409:
-                raise errors.ContainerNotEmpty(name)
-            return True
-
-        return self.make_request('DELETE', [name], params=params, formatter=_formatter)
+        try:
+            return self.make_request('DELETE', [name], params=params, formatter=lambda r: True)
+        except errors.ResponseError, ex:
+            if ex.status == 409:
+                raise errors.ContainerNotEmpty(ex.status, "ContainerNotEmpty Error")
+            raise ex
 
     def containers(self, marker=None, headers=None):
         """ Lists containers
