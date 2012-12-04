@@ -131,7 +131,7 @@ class Client(object):
         """ Returns whether or not this is a directory. Always True. """
         return True
 
-    def search(self, q, options=None, **kwargs):
+    def search(self, q=None, options=None, **kwargs):
         """ Access the search interface.
         @param q: the search query. This can be None.
         @param options: options for the search API. Valid options:
@@ -148,8 +148,9 @@ class Client(object):
         """
         default_params = {
                     'format': 'json',
-                    'q': q
                  }
+        if q:
+            default_params['q'] = q
         params = {}
         options = options or {}
         options.update(kwargs)
@@ -169,8 +170,7 @@ class Client(object):
         def _formatter(response):
             """ Formats search results. """
             headers = response.headers
-            content = response.content
-            items = json.loads(content)
+            items = json.loads(response.content)
             objs = []
             for item in items:
                 if 'type' not in item or item['type'] == 'container':
@@ -182,7 +182,8 @@ class Client(object):
                     objs.append(obj)
             count = int(headers.get('x-search-items-count', 0))
             total = int(headers.get('x-search-items-total', 0))
-            return {'count': count, 'total': total, 'results': objs}
+            offset = int(headers.get('x-search-items-offset', 0))
+            return {'count': count, 'total': total, 'offset': offset, 'results': objs}
         return self.make_request('GET', _path, headers=headers,
                                              params=params,
                                              formatter=_formatter)

@@ -282,11 +282,11 @@ class Container:
         return self.make_request('POST', headers=headers)
     disable_cdn = make_private
 
-    def search(self, q, options=None, **kwargs):
+    def search(self, q=None, options=None, **kwargs):
         """ Search within container. """
         options = options or {}
         options.update({'path': self.name})
-        return self.client.search(q, options=options, **kwargs)
+        return self.client.search(q=q, options=options, **kwargs)
 
     def get_object(self, name):
         """ Calls get_object() on the client. """

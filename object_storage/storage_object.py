@@ -191,6 +191,14 @@ class StorageObject:
         """ returns True if content_type is 'text/directory' or 'application/directory' """
         return self.model.content_type in ['text/directory', 'application/directory']
 
+    def update(self, headers):
+        """ POSTs to the object to update metadata and other attributes
+
+        @param headers: dict of headers to POST to the object
+        @raises ResponseError
+        """
+        return self.make_request('POST', headers=headers)
+
     def set_metadata(self, meta):
         """ Sets metadata for the object
 
@@ -202,16 +210,18 @@ class StorageObject:
             meta_headers["X-Object-Meta-%s" % (k, )] = v
         return self.make_request('POST', headers=meta_headers)
 
-    def create(self):
+    def create(self, headers=None):
         """ Create object
 
+        @param headers: dict of headers to add to the create object request
         @raises ResponseError
         @return: StorageObject - self
         """
         content_type = self.content_type or mimetypes.guess_type(self.name)[0]
         if not content_type:
             content_type = 'application/octet-stream'
-        headers = {'content-type': content_type, 'Content-Length': '0'}
+        h = {'content-type': content_type, 'Content-Length': '0'}
+        headers.update(h)
 
         def _formatter(res):
             return self
@@ -419,11 +429,11 @@ class StorageObject:
             return new_obj.copy_from(self, *args, **kwargs)
         return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
 
-    def search(self, q, options=None, **kwargs):
+    def search(self, q=None, options=None, **kwargs):
         """ Search within path """
         options = options or {}
         options.update({'path': "%s/%s" % (self.container, self.name)})
-        return self.client.search(q, options=options, **kwargs)
+        return self.client.search(q=q, options=options, **kwargs)
 
     def prime_cdn(self, *args, **kwargs):
         """ Prime the object for CDN usage """

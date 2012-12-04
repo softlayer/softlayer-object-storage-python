@@ -14,12 +14,23 @@ class ClientTest(unittest.TestCase):
 
     def test_create(self):
         # no content_type and no ext
-        _headers = Mock()
         _make_request = Mock()
-        self.obj._headers = _headers
         self.obj.make_request = _make_request
-        result = self.obj.create()
-        self.obj.make_request.called_once_with('PUT', headers=_headers)
+        self.obj.create(headers={'test1': 'test1value'})
+        self.assertEqual(self.obj.make_request.call_args[0][0], 'PUT')
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {
+            'test1': 'test1value',
+            'Content-Length': '0',
+            'content-type': 'application/octet-stream'})
+
+    def test_update(self):
+        # no content_type and no ext
+        _make_request = Mock()
+        self.obj.make_request = _make_request
+        self.obj.update({'test1': 'test1value'})
+        self.assertEqual(self.obj.make_request.call_args[0][0], 'POST')
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+            {'test1': 'test1value'})
 
     def test_delete(self):
         result = self.client.delete()
