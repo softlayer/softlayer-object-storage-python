@@ -82,6 +82,10 @@ class Authentication(BaseAuthentication):
         if self.auth_token:
             self.authenticated = True
 
+    @property
+    def auth_headers(self):
+        return {'X-Auth-Token': self.auth_token}
+
     def authenticate(self):
         """ Does authentication """
         headers = {'X-Storage-User': self.username,
@@ -101,9 +105,7 @@ class Authentication(BaseAuthentication):
 
         self.auth_token = response.headers['x-auth-token']
         self.storage_url = self.get_storage_url(storage_options)
-        self.auth_headers = {'X-Auth-Token': self.auth_token}
         if not self.storage_url:
             self.storage_url = response.headers['x-storage-url']
-            raise errors.StorageURLNotFound("Could not find defined storage URL. Using default.")
         if not self.auth_token or not self.storage_url:
             raise errors.AuthenticationError('Invalid Authentication Response')
