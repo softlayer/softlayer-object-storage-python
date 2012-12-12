@@ -16,6 +16,16 @@ class ClientTest(unittest.TestCase):
         # no content_type and no ext
         _make_request = Mock()
         self.obj.make_request = _make_request
+        self.obj.create()
+        self.assertEqual(self.obj.make_request.call_args[0][0], 'PUT')
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {
+            'Content-Length': '0',
+            'content-type': 'application/octet-stream'})
+
+    def test_create_w_headers(self):
+        # no content_type and no ext
+        _make_request = Mock()
+        self.obj.make_request = _make_request
         self.obj.create(headers={'test1': 'test1value'})
         self.assertEqual(self.obj.make_request.call_args[0][0], 'PUT')
         self.assertEqual(self.obj.make_request.call_args[1]['headers'], {
