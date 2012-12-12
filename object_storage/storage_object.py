@@ -217,6 +217,7 @@ class StorageObject:
         @raises ResponseError
         @return: StorageObject - self
         """
+        headers = headers or {}
         content_type = self.content_type or mimetypes.guess_type(self.name)[0]
         if not content_type:
             content_type = 'application/octet-stream'
