@@ -438,12 +438,12 @@ class StorageObject:
 
     def prime_cdn(self, *args, **kwargs):
         """ Prime the object for CDN usage """
-        headers = {'X-Context': 'cdn', 'X-Cdn-Load': True}
+        headers = {'X-Context': 'cdn', 'X-Cdn-Load': 'true'}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 
     def purge_cdn(self, *args, **kwargs):
         """ Purge the object for CDN usage """
-        headers = {'X-Context': 'cdn', 'X-Cdn-Purge': True}
+        headers = {'X-Context': 'cdn', 'X-Cdn-Purge': 'true'}
         return self.make_request('POST', headers=headers, *args, **kwargs)
 
     def make_request(self, method, path=None, *args, **kwargs):
