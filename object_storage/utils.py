@@ -14,7 +14,7 @@ except ImportError:
         import simplejson as json
     except ImportError:
         try:
-            import django.utils.simplejson as json
+            import django.utils.simplejson as json  # NOQA
         except ImportError:
             ImportError("Requires a json parsing library")
 
@@ -22,6 +22,9 @@ try:
     from UserDict import DictMixin
 except ImportError:
     from collections import MutableMapping as DictMixin
+
+
+__all__ = ['json', 'unicode_quote', 'get_path', 'Model']
 
 
 class Model(DictMixin):

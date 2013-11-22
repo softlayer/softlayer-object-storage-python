@@ -24,15 +24,15 @@ class ContainerModel(Model):
 
         _properties = {'name': self.name}
 
-        _properties['count'] = int(self.headers.get('x-container-object-count') or\
-                                   self.headers.get('count') or 0)
+        _properties['count'] = int(self.headers.get('x-container-object-count')
+                                   or self.headers.get('count') or 0)
         _properties['object_count'] = _properties['count']
-        _properties['size'] = int(self.headers.get('x-container-bytes-used') or\
+        _properties['size'] = int(self.headers.get('x-container-bytes-used') or
                                   self.headers.get('size') or 0)
-        _properties['read'] = self.headers.get('x-container-read') or\
-                              self.headers.get('read')
-        _properties['write'] = self.headers.get('x-container-read') or\
-                               self.headers.get('read')
+        _properties['read'] = (self.headers.get('x-container-read') or
+                               self.headers.get('read'))
+        _properties['write'] = (self.headers.get('x-container-read') or
+                                self.headers.get('read'))
         _properties['ttl'] = int(self.headers.get('x-cdn-ttl') or 0)
         _properties['date'] = self.headers.get('date')
         _properties['cdn_url'] = self.headers.get('x-cdn-url')
@@ -113,14 +113,16 @@ class Container:
 
     @property
     def headers(self):
-        """ loads data if not already available and returns the raw headers for the container """
+        """ loads data if not already available and returns the raw headers for
+            the container """
         if not self.model:
             self.load()
         return self.model.headers
 
     @property
     def meta(self):
-        """ loads data if not already available and returns the metadata for the container """
+        """ loads data if not already available and returns the metadata for
+            the container """
         if not self.model:
             self.load()
         return self.model.meta
@@ -160,7 +162,9 @@ class Container:
         """
         def _formatter(res):
             return self
-        return self.make_request('PUT', formatter=_formatter, headers={'Content-Length': '0'})
+        return self.make_request('PUT',
+                                 formatter=_formatter,
+                                 headers={'Content-Length': '0'})
 
     def delete(self, recursive=False):
         """ Delete container
@@ -226,13 +230,18 @@ class Container:
                 items = json.loads(res.content)
                 for item in items:
                     if 'name' in item:
-                        objects[item['name']] = self.storage_object(item['name'], item)
+                        objects[item['name']] = self.storage_object(
+                            item['name'], item)
                     elif 'subdir' in item:
                         item['name'] = item['subdir'].rstrip('/')
                         item['content_type'] = 'application/directory'
-                        objects[item['name']] = self.storage_object(item['name'], item)
+                        objects[item['name']] = self.storage_object(
+                            item['name'], item)
             return objects.values()
-        return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
+        return self.make_request('GET',
+                                 params=params,
+                                 headers=headers,
+                                 formatter=_formatter)
 
     def set_ttl(self, ttl):
         """ Set time to live for CDN
@@ -297,7 +306,8 @@ class Container:
         return self.client.storage_object(self.name, name, headers=headers)
 
     def load_from_filename(self, filename):
-        """ Creates an object from a file. Uses the basename of the file path as the object name. """
+        """ Creates an object from a file. Uses the basename of the file path
+            as the object name. """
         name = os.path.basename(filename)
         return self.storage_object(name).load_from_filename(filename)
 

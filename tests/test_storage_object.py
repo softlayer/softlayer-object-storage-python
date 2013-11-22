@@ -39,33 +39,40 @@ class ClientTest(unittest.TestCase):
         self.obj.make_request = _make_request
         self.obj.update({'test1': 'test1value'})
         self.assertEqual(self.obj.make_request.call_args[0][0], 'POST')
-        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+        self.assertEqual(
+            self.obj.make_request.call_args[1]['headers'],
             {'test1': 'test1value'})
 
     def test_delete(self):
-        result = self.client.delete()
-        self.client.delete_object.called_once_with(self.obj.container, self.obj.name, headers=None)
+        self.client.delete()
+        self.client.delete_object.called_once_with(self.obj.container,
+                                                   self.obj.name,
+                                                   headers=None)
 
     def test_read(self):
         _result = Mock()
         self.obj.make_request = Mock(return_value=_result)
-        result = self.obj.read()
+        self.obj.read()
         self.obj.make_request.called_once_with('GET')
 
     def test_read_with_offsets(self):
         _result = Mock()
         self.obj.make_request = Mock(return_value=_result)
-        result = self.obj.read(size=1111, offset=2222)
-        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=2222-3332'})
+        self.obj.read(size=1111, offset=2222)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+                         {'Range': 'bytes=2222-3332'})
 
-        result = self.obj.read(size=1111)
-        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=0-1110'})
+        self.obj.read(size=1111)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+                         {'Range': 'bytes=0-1110'})
 
-        result = self.obj.read(size=-1111)
-        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=-1111'})
+        self.obj.read(size=-1111)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+                         {'Range': 'bytes=-1111'})
 
-        result = self.obj.read(offset=2222)
-        self.assertEqual(self.obj.make_request.call_args[1]['headers'], {'Range': 'bytes=2222-'})
+        self.obj.read(offset=2222)
+        self.assertEqual(self.obj.make_request.call_args[1]['headers'],
+                         {'Range': 'bytes=2222-'})
 
     def test_copy_to(self):
         _make_request = Mock()
@@ -76,9 +83,10 @@ class ClientTest(unittest.TestCase):
         self.obj.copy_to(other_obj, 1, 2, a1=1, a2=2)
 
         self.obj._headers.called_once_with()
+        h = {'Destination': other_obj.path, 'Content-Length': 0}
         _make_request.called_once_with('COPY', 1, 2,
-                                headers={'Destination': other_obj.path, 'Content-Length': 0},
-                                data='', a1=1, a2=2)
+                                       headers=h,
+                                       data='', a1=1, a2=2)
 
     def test_rename(self):
         self.obj.copy_to = Mock()

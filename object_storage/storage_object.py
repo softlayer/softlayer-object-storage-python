@@ -6,6 +6,8 @@
 from object_storage.utils import json, Model
 import mimetypes
 import os
+import logging
+
 try:
     import StringIO
 except ImportError:
@@ -17,6 +19,8 @@ except ImportError:
 
 from object_storage import errors
 from object_storage.utils import get_path
+
+logger = logging.getLogger(__name__)
 
 
 class StorageObjectModel(Model):
@@ -34,18 +38,19 @@ class StorageObjectModel(Model):
 
         _properties = {'container': self.container, 'name': self.name}
 
-        _properties['size'] = int(self.headers.get('content-length') or\
-                                  self.headers.get('bytes') or\
+        _properties['size'] = int(self.headers.get('content-length') or
+                                  self.headers.get('bytes') or
                                   self.headers.get('size') or 0)
-        _properties['content_type'] = self.headers.get('content_type') or\
-                                      self.headers.get('content-type')
-        _properties['last_modified'] = self.headers.get('last_modified') or\
-                                       self.headers.get('last-modified')
-        _properties['hash'] = self.headers.get('etag') or\
-                              self.headers.get('hash')
+        _properties['content_type'] = (self.headers.get('content_type') or
+                                       self.headers.get('content-type'))
+        _properties['last_modified'] = (self.headers.get('last_modified') or
+                                        self.headers.get('last-modified'))
+        _properties['hash'] = (self.headers.get('etag') or
+                               self.headers.get('hash'))
         _properties['manifest'] = self.headers.get('manifest')
-        _properties['content_encoding'] = self.headers.get('content_encoding') or\
-                                          self.headers.get('content-encoding')
+        _properties['content_encoding'] = (
+            self.headers.get('content_encoding') or
+            self.headers.get('content-encoding'))
         _properties['cache_control'] = self.headers.get('cache-control')
         _properties['cdn_url'] = self.headers.get('x-cdn-url')
         _properties['cdn_ssl_url'] = self.headers.get('x-cdn-ssl-url')
@@ -86,7 +91,8 @@ class StorageObject:
         self.model = None
         self.content_type = None
         if headers:
-            self.model = StorageObjectModel(self, self.container, self.name, headers)
+            self.model = StorageObjectModel(
+                self, self.container, self.name, headers)
 
     def exists(self):
         """ Tries to load the object to check existance
@@ -95,7 +101,8 @@ class StorageObject:
         @return: boolean, true if exists else false
         """
         def _formatter(res):
-            self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+            self.model = StorageObjectModel(
+                self, self.container, self.name, res.headers)
             return True
         try:
             return self.make_request('HEAD', formatter=_formatter)
@@ -113,7 +120,8 @@ class StorageObject:
             headers.setdefault('X-Context', 'cdn')
 
         def _formatter(res):
-            self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+            self.model = StorageObjectModel(
+                self, self.container, self.name, res.headers)
             return self
         return self.make_request('HEAD', headers=headers, formatter=_formatter)
 
@@ -131,14 +139,16 @@ class StorageObject:
 
     @property
     def headers(self):
-        """ loads data if not already available and returns the raw headers for the object """
+        """ loads data if not already available and returns the raw headers for
+            the object """
         if not self.model:
             self.load()
         return self.model.headers
 
     @property
     def meta(self):
-        """ loads data if not already available and returns the metadata for the object """
+        """ loads data if not already available and returns the metadata for
+            the object """
         if not self.model:
             self.load()
         return self.model.meta
@@ -178,18 +188,24 @@ class StorageObject:
                 items = json.loads(res.content)
                 for item in items:
                     if 'name' in item:
-                        objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
+                        objects[item['name']] = self.client.storage_object(
+                            self.container, item['name'], headers=item)
                     elif 'subdir' in item:
                         name = item['subdir'].rstrip('/')
                         item['name'] = name
                         item['content_type'] = 'application/directory'
-                        objects[item['name']] = self.client.storage_object(self.container, item['name'], headers=item)
+                        objects[item['name']] = self.client.storage_object(
+                            self.container, item['name'], headers=item)
             return objects.values()
-        return self.client.make_request('GET', [self.container], params=params, formatter=_formatter)
+        return self.client.make_request('GET', [self.container],
+                                        params=params,
+                                        formatter=_formatter)
 
     def is_dir(self):
-        """ returns True if content_type is 'text/directory' or 'application/directory' """
-        return self.model.content_type in ['text/directory', 'application/directory']
+        """ returns True if content_type is 'text/directory' or
+            'application/directory' """
+        return self.model.content_type in ['text/directory',
+                                           'application/directory']
 
     def update(self, headers):
         """ POSTs to the object to update metadata and other attributes
@@ -283,7 +299,8 @@ class StorageObject:
         @return: iterable
         """
         chunk_size = chunk_size or self.chunk_size
-        return self.client.chunk_download([self.container, self.name], chunk_size=chunk_size)
+        return self.client.chunk_download([self.container, self.name],
+                                          chunk_size=chunk_size)
     iter_content = chunk_download
     __iter__ = chunk_download
 
@@ -297,7 +314,8 @@ class StorageObject:
         @return: object that responds to o.send('data') to send data
             and o.finish() to finish the upload.
         """
-        chunkable = self.client.chunk_upload([self.container, self.name], size=size, headers=headers)
+        chunkable = self.client.chunk_upload([self.container, self.name],
+                                             size=size, headers=headers)
         return chunkable
 
     def send(self, data, check_md5=True):
@@ -327,7 +345,9 @@ class StorageObject:
             _type = None
             if hasattr(data, 'name'):
                 _type = mimetypes.guess_type(data.name)[0]
-            content_type = _type or mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
+            content_type = (_type or
+                            mimetypes.guess_type(self.name)[0] or
+                            'application/octet-stream')
         headers['Content-Type'] = content_type
 
         checksum = md5()
@@ -345,7 +365,8 @@ class StorageObject:
         if check_md5:
             assert checksum.hexdigest() == res.headers['etag'], 'md5 hashes do not match'
         res.headers['content-length'] = transfered
-        self.model = StorageObjectModel(self, self.container, self.name, res.headers)
+        self.model = StorageObjectModel(
+            self, self.container, self.name, res.headers)
         headers['Content-Type'] = content_type
         return self
 
@@ -417,7 +438,8 @@ class StorageObject:
         return self.make_request('COPY', headers=headers, *args, **kwargs)
 
     def rename(self, new_obj, *args, **kwargs):
-        """ Copies content to a new object existing object and deletes the current object
+        """ Copies content to a new object existing object and deletes the
+            current object
 
         @param new_obj: StorageObject instance to copy data to
         @raises: ResponseError
@@ -428,7 +450,9 @@ class StorageObject:
         def _copy_to(res):
             kwargs['formatter'] = _delete
             return new_obj.copy_from(self, *args, **kwargs)
-        return new_obj.make_request('PUT', headers={'Content-Length': '0'}, formatter=_copy_to)
+        return new_obj.make_request('PUT',
+                                    headers={'Content-Length': '0'},
+                                    formatter=_copy_to)
 
     def search(self, q=None, options=None, **kwargs):
         """ Search within path """
@@ -467,7 +491,8 @@ class StorageObject:
         size = 'Unknown'
         if self.model:
             size = self.model.get('size', 0)
-        return 'StorageObject(%s, %s, %sB)' % (self.container.encode("utf-8"), self.name.encode("utf-8"), size)
+        return 'StorageObject(%s, %s, %sB)' % (self.container.encode("utf-8"),
+                                               self.name.encode("utf-8"), size)
     __repr__ = __str__
 
     def __enter__(self):

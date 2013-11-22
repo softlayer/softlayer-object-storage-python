@@ -17,7 +17,8 @@ class AuthenticationError(ObjectStorageError):
 
 class StorageURLNotFound(AuthenticationError):
     """
-        Raised when the requested protocol/network-type not found in Authentication response.
+        Raised when the requested protocol/network-type not found in
+        Authentication response.
     """
     pass
 

@@ -14,16 +14,16 @@ class ContainerTest(unittest.TestCase):
 
     def test_create(self):
         self.container.make_request = Mock()
-        result = self.container.create()
+        self.container.create()
         self.container.make_request.called_once_with('PUT')
 
     def test_delete(self):
-        result = self.container.delete()
+        self.container.delete()
         self.client.delete_container.called_once_with(self.container.name)
 
     def test_delete_recursive(self):
         self.container.delete_all_objects = Mock()
-        result = self.container.delete(recursive=True)
+        self.container.delete(recursive=True)
         self.container.delete_all_objects.called_once_with()
         self.client.delete_container.called_once_with(self.container.name)
 
@@ -51,7 +51,8 @@ class ContainerTest(unittest.TestCase):
 
     def test_search(self, *args, **kwargs):
         self.container.search('query')
-        self.client.search.called_once_with('query', {'path': self.container.name})
+        self.client.search.called_once_with('query',
+                                            {'path': self.container.name})
 
     def test_get_object(self):
         _name = Mock()
@@ -62,7 +63,8 @@ class ContainerTest(unittest.TestCase):
         _name = Mock()
         _props = Mock()
         self.container.storage_object(_name, _props)
-        self.container.client.storage_object.called_once_with(self.container.name, _name, properties=_props)
+        self.container.client.storage_object.called_once_with(
+            self.container.name, _name, properties=_props)
 
     def test_load_from_filename(self):
         _obj = Mock()
@@ -73,20 +75,22 @@ class ContainerTest(unittest.TestCase):
         _obj.load_from_filename.called_once_with('/dir/to/filename')
 
     def test_path(self):
-        path = self.container.path
+        self.container.path
         self.client.get_path.called_once_with([self.container.name])
 
     def test_url(self):
-        path = self.container.url
+        self.container.url
         self.client.get_url.called_once_with([self.container.name])
 
     def test_is_dir(self):
         result = self.container.is_dir()
-        self.assert_(result == True)
+        self.assert_(result is True)
 
-    def test_make_request(self):#, method, *args, **kwargs):
+    def test_make_request(self):
         self.container.make_request('METHOD', 1, 2, a1=1, a2=2)
-        self.client.make_request.called_once_with('METHOD', [self.container.name], 1, 2, a1=1, a2=2)
+        self.client.make_request.called_once_with('METHOD',
+                                                  [self.container.name],
+                                                  1, 2, a1=1, a2=2)
 
     def test_getitem(self):
         _obj = Mock()

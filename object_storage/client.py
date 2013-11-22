@@ -28,12 +28,15 @@ class AccountModel(Model):
 
         _properties = {}
 
-        _properties['container_count'] = int(self.headers.get('x-account-container-count') or\
-                                             self.headers.get('count') or 0)
-        _properties['object_count'] = int(self.headers.get('x-account-object-count') or\
-                                          self.headers.get('object_count') or 0)
-        _properties['size'] = int(self.headers.get('x-account-bytes-used') or\
-                                  self.headers.get('size') or 0)
+        _properties['container_count'] = int(
+            self.headers.get('x-account-container-count') or
+            self.headers.get('count') or 0)
+        _properties['object_count'] = int(
+            self.headers.get('x-account-object-count') or
+            self.headers.get('object_count') or 0)
+        _properties['size'] = int(
+            self.headers.get('x-account-bytes-used') or
+            self.headers.get('size') or 0)
 
         _properties['path'] = controller.path
         _properties['url'] = controller.url
@@ -55,11 +58,12 @@ class Client(object):
     """
         Client class. Primary interface for the client.
     """
-    def __init__(self, username=None,
-                       api_key=None,
-                       connection=None,
-                       delimiter='/',
-                       **kwargs):
+    def __init__(self,
+                 username=None,
+                 api_key=None,
+                 connection=None,
+                 delimiter='/',
+                 **kwargs):
         """ constructor for Client object
 
         @param username: the username
@@ -105,14 +109,16 @@ class Client(object):
 
     @property
     def headers(self):
-        """ loads data if not already available and returns the raw headers for the account """
+        """ loads data if not already available and returns the raw headers
+            for the account """
         if not self.model:
             self.load()
         return self.model.headers
 
     @property
     def meta(self):
-        """ loads data if not already available and returns the metadata for the account """
+        """ loads data if not already available and returns the metadata for
+            the account """
         if not self.model:
             self.load()
         return self.model.meta
@@ -147,8 +153,8 @@ class Client(object):
             http://sldn.softlayer.com/article/API-Operations-Search-Services
         """
         default_params = {
-                    'format': 'json',
-                 }
+            'format': 'json',
+        }
         if q:
             default_params['q'] = q
         params = {}
@@ -177,16 +183,20 @@ class Client(object):
                     objs.append(self.container(item['name'], headers=item))
                 elif item['type'] == 'object':
                     obj = self.storage_object(item['container'],
-                                      item['name'],
-                                      headers=item)
+                                              item['name'],
+                                              headers=item)
                     objs.append(obj)
             count = int(headers.get('x-search-items-count', 0))
             total = int(headers.get('x-search-items-total', 0))
             offset = int(headers.get('x-search-items-offset', 0))
-            return {'count': count, 'total': total, 'offset': offset, 'results': objs}
-        return self.make_request('GET', _path, headers=headers,
-                                             params=params,
-                                             formatter=_formatter)
+            return {'count': count,
+                    'total': total,
+                    'offset': offset,
+                    'results': objs}
+        return self.make_request('GET', _path,
+                                 headers=headers,
+                                 params=params,
+                                 formatter=_formatter)
 
     def set_delimiter(self, delimiter):
         """ Sets the delimiter for pseudo hierarchical directory structure.
@@ -195,8 +205,8 @@ class Client(object):
         self.delimiter = delimiter
 
     def set_storage_url(self, url):
-        """ Sets the storage URL. After authentication, the URL is automatically
-        populated, but the default value can be overwritten.
+        """ Sets the storage URL. After authentication, the URL is
+        automatically populated, but the default value can be overwritten.
 
         @param url: url to use to call the Object Storage API.
         """
@@ -250,10 +260,12 @@ class Client(object):
             params['recursive'] = True
 
         try:
-            return self.make_request('DELETE', [name], params=params, formatter=lambda r: True)
+            return self.make_request('DELETE', [name],
+                                     params=params, formatter=lambda r: True)
         except errors.ResponseError, ex:
             if ex.status == 409:
-                raise errors.ContainerNotEmpty(ex.status, "ContainerNotEmpty Error")
+                raise errors.ContainerNotEmpty(ex.status,
+                                               "ContainerNotEmpty Error")
             raise ex
 
     def containers(self, marker=None, headers=None):
@@ -275,7 +287,10 @@ class Client(object):
                     name = item.get('name', None)
                     containers.append(self.container(name, item))
             return containers
-        return self.make_request('GET', params=params, headers=headers, formatter=_formatter)
+        return self.make_request('GET',
+                                 params=params,
+                                 headers=headers,
+                                 formatter=_formatter)
 
     def public_containers(self, *args, **kwargs):
         """ Lists public containers. Same interface as self.containers()
@@ -293,7 +308,8 @@ class Client(object):
         @param headers: initial headers to use to initialize the object
         """
         return self.object_class(container, name,
-                                headers=headers, client=self)
+                                 headers=headers,
+                                 client=self)
 
     def get_object(self, container, name):
         """ Load an object from swift
@@ -311,7 +327,8 @@ class Client(object):
         @param name: object name
         @raises ResponseError
         """
-        return self.make_request('DELETE', [container, name], formatter=lambda r: True)
+        return self.make_request('DELETE', [container, name],
+                                 formatter=lambda r: True)
 
     def get_url(self, path=None):
         """ Returns the url of the resource
@@ -356,6 +373,7 @@ class Client(object):
         @raises ResponseError
         """
         url = self.get_url(path)
+        logger.debug("%s %s %s" % ('PUT', url, headers))
         return self.conn.chunk_upload('PUT', url, size=size, headers=headers)
 
     def __getitem__(self, name):
