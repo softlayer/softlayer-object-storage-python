@@ -308,7 +308,7 @@ class StorageObject:
         """ Returns a chunkable upload instance.
             This is needed for transient data uploads
 
-        @param headers: size in bytes, if known
+        @param size: size in bytes, if known
         @param headers: extra headers to use to initialize the request
         @raises: ResponseError
         @return: object that responds to o.send('data') to send data
@@ -322,6 +322,7 @@ class StorageObject:
         """ Uploads object data
 
         @param data: either a file-like object or a string.
+        @param check_md5: check if hash of uploaded file matches
         @raises: ResponseError
         @return: StorageObject, self
         """
