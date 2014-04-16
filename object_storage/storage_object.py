@@ -112,7 +112,7 @@ class StorageObject:
     def load(self, cdn=False):
         """ load data for the object
 
-        @param cdn: True if you want CDN information; default=True
+        @param cdn: True if you want CDN information; default=False
         @return: object_storage.storage_object, self
         """
         headers = {}

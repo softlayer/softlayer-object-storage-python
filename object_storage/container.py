@@ -84,10 +84,10 @@ class Container:
         except errors.NotFound:
             return False
 
-    def load(self, cdn=True):
+    def load(self, cdn=False):
         """ load data for the container
 
-        @param cdn: True if you want CDN information; default=True
+        @param cdn: True if you want CDN information; default=False
         @return: object_storage.container, self
         """
         headers = {}

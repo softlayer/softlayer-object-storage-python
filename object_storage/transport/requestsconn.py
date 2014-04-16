@@ -40,16 +40,16 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
             formatter = kwargs.get('formatter')
             del kwargs['formatter']
 
+        print method, url, args, kwargs
         res = requests.request(method, url, *args, **kwargs)
         if kwargs.get('return_response', True):
             res = self._check_success(res)
             if res.status_code == 404:
                 raise errors.NotFound('Not found')
-            if res.error:
-                try:
-                    raise res.raise_for_status()
-                except Exception, ex:
-                    raise errors.ResponseError(res.status_code, str(ex))
+            try:
+                res.raise_for_status()
+            except Exception as ex:
+                raise errors.ResponseError(res.status_code, str(ex))
 
         if formatter:
             return formatter(res)
