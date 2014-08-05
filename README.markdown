@@ -78,7 +78,7 @@ sl_storage.search('foo*baz')
 # {'count': 1, 'total': 1, 'results': [Container(foobarbaz)]}
 ```
 
-Developement
+Development
 ------------
 Here's how to get started:
 
