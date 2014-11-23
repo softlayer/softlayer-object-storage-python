@@ -4,7 +4,7 @@
     See COPYING for license information
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 USER_AGENT = "sl-object-storage-python/%s" % __version__
 
