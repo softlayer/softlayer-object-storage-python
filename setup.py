@@ -15,7 +15,7 @@ if sys.version_info >= (3,):
 setup(
     name='softlayer-object-storage',
     version=__version__,
-    description='Softlayer Object Storage client bindings for Python.',
+    description='SoftLayer Object Storage client bindings for Python.',
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
