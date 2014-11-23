@@ -3,24 +3,19 @@ from setuptools import setup, find_packages
 import sys
 from object_storage.consts import __version__
 
-name = 'softlayer-object-storage'
-version = __version__
-_ver = sys.version_info
-
 requirements = ['httplib2']
-if _ver[0] == 2 and _ver[1] < 6:
+if sys.version_info[0] == 2 and sys.version_info[1] < 6:
     requirements.append('simplejson')
 
-
 # Python 3 conversion
-extra = {}
+extra_args = {}
 if sys.version_info >= (3,):
-    extra['use_2to3'] = True
+    extra_args['use_2to3'] = True
 
 setup(
-    name=name,
-    version=version,
-    description='Softlayer Object Storage client bindings for python.',
+    name='softlayer-object-storage',
+    version=__version__,
+    description='SoftLayer Object Storage client bindings for Python.',
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -38,5 +33,5 @@ setup(
     test_suite='tests',
     packages=find_packages(exclude=['tests']),
     install_requires=requirements,
-    **extra
+    **extra_args
 )
