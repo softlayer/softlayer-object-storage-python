@@ -6,7 +6,7 @@
 
 __version__ = "0.5.1"
 
-USER_AGENT = "sl-object-storage-python: %s" % __version__
+USER_AGENT = "sl-object-storage-python/%s" % __version__
 
 
 def _dc_endpoints(dc):
