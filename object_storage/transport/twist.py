@@ -7,7 +7,8 @@ from zope import interface
 
 from object_storage.transport import requote_path
 from object_storage.errors import NotFound
-from object_storage.transport import Response, BaseAuthenticatedConnection, BaseAuthentication
+from object_storage.transport import Response, BaseAuthenticatedConnection, \
+    BaseAuthentication
 from object_storage import errors
 
 from twisted.internet import reactor
@@ -102,7 +103,7 @@ def make_request(method, url=None, headers=None, *args, **kwargs):
     url = _full_url(url, params)
     body = kwargs.get('data')
 
-    #print method, url, headers, body
+    # print method, url, headers, body
 
     contextFactory = WebClientContextFactory()
     agent = Agent(reactor, contextFactory)
@@ -137,7 +138,8 @@ def _full_url(url, _params={}):
 
     path = requote_path(path)
 
-    url = str(urlparse.urlunparse([scheme, netloc, path, params, query, fragment]))
+    url = str(urlparse.urlunparse([scheme, netloc, path, params, query,
+                                   fragment]))
 
     if _params:
         if urlparse.urlparse(url).query:
@@ -179,7 +181,8 @@ class Authentication(BaseAuthentication):
         self.storage_url = self.get_storage_url(storage_options)
         if not self.storage_url:
             self.storage_url = response.headers['x-storage-url']
-            raise errors.StorageURLNotFound("Could not find defined storage URL. Using default.")
+            raise errors.StorageURLNotFound("Could not find defined "
+                                            "storage URL. Using default.")
         if not self.auth_token or not self.storage_url:
             raise errors.AuthenticationError('Invalid Authentication Response')
 
@@ -236,7 +239,9 @@ class ChunkedConnection:
         if not self.size:
             self.size = UNKNOWN_LENGTH
         self.body.length = self.size
-        req = self.conn.make_request('PUT', self.url, headers=self.headers, data=self.body)
+        req = self.conn.make_request('PUT', self.url,
+                                     headers=self.headers,
+                                     data=self.body)
         self.req = req
         print "ChunkedTwistedConnection: STARTED REQUEST"
 
