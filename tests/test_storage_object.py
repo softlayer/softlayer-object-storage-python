@@ -88,6 +88,23 @@ class ClientTest(unittest.TestCase):
                                        headers=h,
                                        data='', a1=1, a2=2)
 
+    def test_object_is_dir(self):
+        dir_object = StorageObject('stuff', 'mydir',
+                                   client=self.client,
+                                   headers={'content-type':
+                                            'application/directory'})
+        legacy_dir_object = StorageObject('stuff', 'olddir',
+                                          client=self.client,
+                                          headers={'content-type':
+                                                   'text/directory'})
+        file_object = StorageObject('stuff', 'taco-recipe',
+                                    client=self.client,
+                                    headers={'content-type': 'text/taco'})
+
+        self.assertTrue(dir_object.is_dir())
+        self.assertTrue(legacy_dir_object.is_dir())
+        self.assertFalse(file_object.is_dir())
+
     def test_rename(self):
         self.obj.copy_to = Mock()
         self.obj.delete = Mock()

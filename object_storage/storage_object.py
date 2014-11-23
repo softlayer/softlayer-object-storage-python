@@ -204,8 +204,8 @@ class StorageObject:
     def is_dir(self):
         """ returns True if content_type is 'text/directory' or
             'application/directory' """
-        return self.model.content_type in ['text/directory',
-                                           'application/directory']
+        return self.model['content_type'] in ['text/directory',
+                                              'application/directory']
 
     def update(self, headers):
         """ POSTs to the object to update metadata and other attributes
