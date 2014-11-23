@@ -4,7 +4,8 @@
     See COPYING for license information
 """
 import requests
-from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection
+from object_storage.transport import BaseAuthentication, \
+    BaseAuthenticatedConnection
 from object_storage import errors
 from object_storage.utils import json
 

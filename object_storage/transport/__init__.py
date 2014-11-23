@@ -4,7 +4,7 @@
     See COPYING for license information
 """
 import httplib
-from socket  import timeout
+from socket import timeout
 from urlparse import urlparse
 from object_storage.errors import ResponseError, NotFound
 from object_storage import consts
@@ -25,11 +25,14 @@ class Response(object):
         if self.status_code == 404:
             raise NotFound(self.status_code, "Not Found")
         if (self.status_code >= 300) and (self.status_code < 400):
-            raise ResponseError(self.status_code, '%s Redirection' % self.status_code)
+            raise ResponseError(self.status_code,
+                                '%s Redirection' % self.status_code)
         elif (self.status_code >= 400) and (self.status_code < 500):
-            raise ResponseError(self.status_code, '%s Client Error' % self.status_code)
+            raise ResponseError(self.status_code,
+                                '%s Client Error' % self.status_code)
         elif (self.status_code >= 500) and (self.status_code < 600):
-            raise ResponseError(self.status_code, '%s Server Error' % self.status_code)
+            raise ResponseError(self.status_code,
+                                '%s Server Error' % self.status_code)
 
 
 class BaseAuthenticatedConnection:
@@ -41,13 +44,15 @@ class BaseAuthenticatedConnection:
 
     def get_headers(self):
         """ Get default headers for this connection """
-        return dict([('User-Agent', consts.USER_AGENT)] + self.auth_headers.items())
+        return dict([('User-Agent', consts.USER_AGENT)] +
+                    self.auth_headers.items())
 
     def chunk_upload(self, method, url, size=None, headers=None):
         """ Returns new ChunkedConnection """
         headers = headers or {}
         headers.update(self.get_headers())
-        return ChunkedUploadConnection(self, method, url, size=size, headers=headers)
+        return ChunkedUploadConnection(self, method, url, size=size,
+                                       headers=headers)
 
     def chunk_download(self, url, chunk_size=10 * 1024):
         """ Returns new ChunkedConnection """
@@ -69,9 +74,9 @@ class BaseAuthentication(object):
         a new Authentication method. authenticate() should be overwritten.
     """
     def __init__(self, auth_url=None,
-                       protocol='https',
-                       datacenter='dal05',
-                       network='public'):
+                 protocol='https',
+                 datacenter='dal05',
+                 network='public'):
         self.auth_url = auth_url
         self.protocol = protocol or 'https'
         self.datacenter = datacenter or 'dal05'
@@ -80,7 +85,9 @@ class BaseAuthentication(object):
         self.use_default_storage_url = True
         if not auth_url:
             self.use_default_storage_url = False
-            self.auth_url = consts.ENDPOINTS[self.datacenter][self.network][self.protocol]
+            self.auth_url = consts.ENDPOINTS.get(self.datacenter) \
+                                            .get(self.network) \
+                                            .get(self.protocol)
         self.storage_url = None
         self.auth_token = None
         self.authenticated = False
@@ -197,4 +204,3 @@ class ChunkedDownloadConnection:
         self.url = url
         self.req = None
         self.headers = headers or {}
-

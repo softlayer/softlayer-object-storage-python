@@ -5,7 +5,8 @@
 """
 import urllib
 from object_storage import errors
-from object_storage.transport import BaseAuthentication, BaseAuthenticatedConnection, Response
+from object_storage.transport import BaseAuthentication, \
+    BaseAuthenticatedConnection, Response
 import httplib2
 
 from object_storage.utils import json
@@ -31,7 +32,8 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
             self.auth.authenticate()
         self._authenticate()
 
-    def make_request(self, method, url=None, headers=None, formatter=None, params=None, data=None, *args, **kwargs):
+    def make_request(self, method, url=None, headers=None, formatter=None,
+                     params=None, data=None, *args, **kwargs):
         """ Makes a request """
         headers = headers or {}
         headers.update(self.get_headers())
@@ -41,7 +43,9 @@ class AuthenticatedConnection(BaseAuthenticatedConnection):
 
         def _make_request(headers):
             logger.debug("%s %s %s" % (method, url, headers))
-            res, content = self.http.request(url, method, headers=headers, body=data)
+            res, content = self.http.request(url, method,
+                                             headers=headers,
+                                             body=data)
             response = Response()
             response.headers = res
             response.status_code = int(res.status)
