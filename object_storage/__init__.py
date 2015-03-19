@@ -72,8 +72,3 @@ def get_twisted_client(username, password,
 
     d = conn.authenticate().addCallback(lambda r: client)
     return d
-
-__all__ = ['get_client',
-           'get_httplib2_client',
-           'get_requests_client',
-           'get_twisted_client']

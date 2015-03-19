@@ -6,11 +6,12 @@
 import httplib
 from socket import timeout
 from urlparse import urlparse
-from object_storage.errors import ResponseError, NotFound
-from object_storage import consts
 
 import urllib2
 import re
+
+from object_storage.errors import ResponseError, NotFound
+from object_storage import consts
 
 
 class Response(object):
@@ -85,9 +86,14 @@ class BaseAuthentication(object):
         self.use_default_storage_url = True
         if not auth_url:
             self.use_default_storage_url = False
-            self.auth_url = consts.ENDPOINTS.get(self.datacenter) \
-                                            .get(self.network) \
-                                            .get(self.protocol)
+            dc_endpoints = consts.ENDPOINTS.get(self.datacenter)
+
+            if not dc_endpoints:
+                dc_endpoints = consts.dc_endpoints(self.datacenter)
+
+            self.auth_url = dc_endpoints.get(self.network) \
+                                        .get(self.protocol)
+
         self.storage_url = None
         self.auth_token = None
         self.authenticated = False
