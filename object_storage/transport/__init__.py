@@ -155,6 +155,8 @@ class ChunkedUploadConnection:
             else:
                 port = 80
 
+        port = int(port)
+
         if scheme == 'https':
             self.req = httplib.HTTPSConnection(host, port)
         else:
